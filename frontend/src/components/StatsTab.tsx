@@ -2,22 +2,25 @@ import { useMemo, useState } from 'react'
 import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
 import { daysBetween, today } from '@/lib/dates'
-import { FRESHNESS_META, freshnessOf, isEligible, meetupEntries, reciprocity, urgency } from '@/lib/scoring'
-import type { Freshness } from '@/types'
+import { isEligible, meetupEntries, progressOf, reciprocity, tierOf, urgency } from '@/lib/scoring'
 import Avatar from './Avatar'
 
 type Period = 30 | 90 | 365
 
 export default function StatsTab() {
-  const { friends, tiers, tags } = useStore()
+  const { friends, tiers, tags, kinds } = useStore()
   const ui = useUi()
   const [period, setPeriod] = useState<Period>(90)
 
   const stats = useMemo(() => {
     const active = friends.filter(isEligible)
 
-    const buckets: Record<Freshness, number> = { fresh: 0, soon: 0, due: 0, overdue: 0 }
-    for (const f of active) buckets[freshnessOf(urgency(f, tiers))]++
+    // Named freshness buckets are gone — a plain "furthest behind" list says
+    // the same thing without filing people under a label.
+    const behind = active
+      .filter(f => urgency(f, tiers) >= 1)
+      .sort((a, b) => urgency(b, tiers) - urgency(a, tiers))
+      .slice(0, 5)
 
     const inPeriod = friends.flatMap(f =>
       f.meetups
@@ -54,6 +57,11 @@ export default function StatsTab() {
       .sort((a, b) => b.r.share! - a.r.share! || b.r.known - a.r.known)
       .slice(0, 5)
 
+    const perKind = kinds.map(k => ({
+      kind:  k,
+      count: occasions.filter(e => e.meetup.kindIds?.includes(k.id)).length,
+    })).filter(r => r.count > 0).sort((a, b) => b.count - a.count)
+
     const perTag = tags.map(t => {
       const members = active.filter(f => f.tagIds.includes(t.id))
       return { tag: t, total: members.length, onTrack: members.filter(f => urgency(f, tiers) < 1).length }
@@ -71,19 +79,17 @@ export default function StatsTab() {
       : 100
 
     return {
-      active, buckets, meetups: occasions.length, groupOccasions, mostSeen,
-      perTier, perTag, totals, alwaysMe, health,
+      active, behind, meetups: occasions.length, groupOccasions, mostSeen,
+      perTier, perTag, perKind, totals, alwaysMe, health,
     }
-  }, [friends, tiers, tags, period])
+  }, [friends, tiers, tags, kinds, period])
 
   if (!friends.length) {
     return <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Add friends to see stats.</div>
   }
 
-  const maxBucket = Math.max(1, ...Object.values(stats.buckets))
-
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+    <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
       <div className="flex items-center gap-1.5">
         {([30, 90, 365] as Period[]).map(p => (
           <button
@@ -106,30 +112,39 @@ export default function StatsTab() {
       </div>
       {stats.groupOccasions > 0 && (
         <p className="text-[11px] text-slate-500 -mt-2 px-1">
-          {stats.groupOccasions} of them {stats.groupOccasions === 1 ? 'was' : 'were'} a group meetup.
+          {stats.groupOccasions} of them {stats.groupOccasions === 1 ? 'was' : 'were'} with several friends at once.
         </p>
       )}
 
-      <section className="card p-4">
-        <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-3">Who needs you</h3>
-        <div className="space-y-2">
-          {(Object.keys(stats.buckets) as Freshness[]).map(k => {
-            const meta = FRESHNESS_META[k]
-            return (
-              <div key={k} className="flex items-center gap-2">
-                <span className={`text-xs w-16 shrink-0 ${meta.text}`}>{meta.label}</span>
-                <div className="flex-1 h-2 rounded-full bg-slate-700 overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${(stats.buckets[k] / maxBucket) * 100}%`, backgroundColor: meta.dot }}
-                  />
-                </div>
-                <span className="text-xs text-slate-400 w-6 text-right">{stats.buckets[k]}</span>
-              </div>
-            )
-          })}
-        </div>
-      </section>
+      {stats.behind.length > 0 && (
+        <section className="card p-4">
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-3">Furthest behind</h3>
+          <div className="space-y-2">
+            {stats.behind.map(friend => {
+              const tier = tierOf(friend, tiers)
+              return (
+                <button
+                  key={friend.id}
+                  onClick={() => ui.openFriend(friend)}
+                  className="w-full flex items-center gap-2.5 text-left hover:bg-slate-800/60 rounded-lg px-1 py-1 transition-colors"
+                >
+                  <Avatar name={friend.name} size={24} />
+                  <span className="text-sm w-24 shrink-0 truncate">{friend.name}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-700 overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${progressOf(friend, tiers)}%`,
+                        backgroundColor: tier?.color ?? 'var(--accent)',
+                      }}
+                    />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {stats.totals.known > 0 && (
         <section className="card p-4">
@@ -155,7 +170,7 @@ export default function StatsTab() {
                     onClick={() => ui.openFriend(friend)}
                     className="w-full flex items-center gap-2.5 text-left hover:bg-slate-800/60 rounded-lg px-1 py-1 transition-colors"
                   >
-                    <Avatar name={friend.name} photo={friend.photo} size={24} />
+                    <Avatar name={friend.name} size={24} />
                     <span className="text-sm flex-1 truncate">{friend.name}</span>
                     <span className="text-xs text-slate-400">{r.me}/{r.known}</span>
                   </button>
@@ -163,6 +178,29 @@ export default function StatsTab() {
               </div>
             </>
           )}
+        </section>
+      )}
+
+      {stats.perKind.length > 0 && (
+        <section className="card p-4">
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-3">By kind of hangout</h3>
+          <div className="space-y-2">
+            {stats.perKind.map(({ kind, count }) => (
+              <div key={kind.id} className="flex items-center gap-2">
+                <span className="text-xs w-24 shrink-0 truncate" style={{ color: kind.color }}>{kind.name}</span>
+                <div className="flex-1 h-2 rounded-full bg-slate-700 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(count / stats.perKind[0]!.count) * 100}%`,
+                      backgroundColor: kind.color,
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-slate-400 w-12 text-right">{count}</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -210,7 +248,7 @@ export default function StatsTab() {
                 onClick={() => ui.openFriend(friend)}
                 className="w-full flex items-center gap-2.5 text-left hover:bg-slate-800/60 rounded-lg px-1 py-1 transition-colors"
               >
-                <Avatar name={friend.name} photo={friend.photo} size={26} />
+                <Avatar name={friend.name} size={26} />
                 <span className="text-sm flex-1 truncate">{friend.name}</span>
                 <span className="text-xs text-slate-400">{count}×</span>
               </button>
