@@ -1,16 +1,28 @@
-import type { Friend, Initiator, MeetupEntry, Tag, Tier, Freshness } from '@/types'
+import type { Friend, Initiator, Meetup, MeetupEntry, Tag, Tier } from '@/types'
 import { daysBetween, today } from './dates'
 
 /** Shared swatches for accents, tiers and tags. */
 export const PALETTE = ['#38bdf8', '#ec4899', '#a78bfa', '#34d399', '#f59e0b', '#f43f5e', '#22d3ee', '#fb923c']
 
 export const DEFAULT_TIERS: Tier[] = [
-  { id: 'inner',        name: 'Inner circle',   intervalDays:  14, color: '#f43f5e', builtin: true },
-  { id: 'close',        name: 'Close friend',   intervalDays:  30, color: '#f59e0b', builtin: true },
-  { id: 'good',         name: 'Good friend',    intervalDays:  75, color: '#38bdf8', builtin: true },
-  { id: 'friendly',     name: 'Friendly',       intervalDays: 150, color: '#a78bfa', builtin: true },
+  { id: 'inner',        name: 'Inner circle',   intervalDays:  30, color: '#f43f5e', builtin: true },
+  { id: 'close',        name: 'Close friend',   intervalDays:  60, color: '#f59e0b', builtin: true },
+  { id: 'good',         name: 'Good friend',    intervalDays: 120, color: '#38bdf8', builtin: true },
+  { id: 'friendly',     name: 'Friendly',       intervalDays: 240, color: '#a78bfa', builtin: true },
   { id: 'acquaintance', name: 'Acquaintance',   intervalDays: 365, color: '#64748b', builtin: true },
 ]
+
+/**
+ * What the built-in levels used to be, before the ladder was stretched so that
+ * nothing asks for more than one meetup a month. Used by the store migration to
+ * re-time levels the user never touched, while leaving edited ones alone.
+ */
+export const LEGACY_TIER_INTERVALS: Record<string, number> = {
+  inner: 14, close: 30, good: 75, friendly: 150,
+}
+
+/** Handy targets for the frequency picker, in days. */
+export const INTERVAL_PRESETS: number[] = [7, 14, 30, 60, 90, 180, 365]
 
 /** The target gap between meetups for this friend, in days. */
 export function intervalOf(friend: Friend, tiers: Tier[]): number {
@@ -43,18 +55,14 @@ export function urgency(friend: Friend, tiers: Tier[]): number {
   return daysSinceSeen(friend) / intervalOf(friend, tiers)
 }
 
-export function freshnessOf(ratio: number): Freshness {
-  if (ratio < 0.6)  return 'fresh'
-  if (ratio < 0.9)  return 'soon'
-  if (ratio < 1.25) return 'due'
-  return 'overdue'
+/** How far through the interval a friend is, 0–100, for the progress bar. */
+export function progressOf(friend: Friend, tiers: Tier[]): number {
+  return Math.min(100, Math.round(urgency(friend, tiers) * 100))
 }
 
-export const FRESHNESS_META: Record<Freshness, { label: string; text: string; bg: string; dot: string }> = {
-  fresh:   { label: 'Fresh',   text: 'text-emerald-400', bg: 'bg-emerald-500/10', dot: '#10b981' },
-  soon:    { label: 'Soon',    text: 'text-sky-400',     bg: 'bg-sky-500/10',     dot: '#38bdf8' },
-  due:     { label: 'Due',     text: 'text-amber-400',   bg: 'bg-amber-500/10',   dot: '#f59e0b' },
-  overdue: { label: 'Overdue', text: 'text-rose-400',    bg: 'bg-rose-500/10',    dot: '#f43f5e' },
+/** Past their interval — the one distinction the app still draws. */
+export function isOverdue(friend: Friend, tiers: Tier[]): boolean {
+  return urgency(friend, tiers) >= 1
 }
 
 /** Days remaining until the friend is "due". Negative when overdue. */
@@ -79,6 +87,15 @@ export function ranked(friends: Friend[], tiers: Tier[]): Friend[] {
 export function tagsOf(friend: Friend, tags: Tag[]): Tag[] {
   return friend.tagIds.map(id => tags.find(t => t.id === id)).filter((t): t is Tag => !!t)
 }
+
+/** The kinds of hangout recorded against one meetup. */
+export function kindsOf(meetup: Meetup, kinds: Tag[]): Tag[] {
+  return (meetup.kindIds ?? []).map(id => kinds.find(k => k.id === id)).filter((k): k is Tag => !!k)
+}
+
+/** Kinds Orbit creates on its own when you log a call or a text in one tap. */
+export const CALL_KIND = 'call'
+export const TEXT_KIND = 'text'
 
 export interface Reciprocity {
   me:     number

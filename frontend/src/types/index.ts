@@ -9,7 +9,11 @@ export interface Tier {
   builtin?:     boolean
 }
 
-/** A free-form circle a friend belongs to — work, climbing, school… */
+/**
+ * A free-form label. Two separate vocabularies use this shape: **circles**
+ * group friends (work, climbing, school), **kinds** describe what a hangout
+ * actually was (dinner, coffee, call).
+ */
 export interface Tag {
   id:    string
   name:  string
@@ -25,6 +29,8 @@ export interface Meetup {
   date:    string
   place?:  string
   note?:   string
+  /** What kind of hangout this was — free-form, shared across meetups. */
+  kindIds?: string[]
   initiator?: Initiator
   /** Shared by every copy of a meetup that involved several friends. */
   groupId?: string
@@ -37,10 +43,6 @@ export interface Friend {
   tagIds:    string[]
   /** Per-friend override of the tier interval, in days. */
   customIntervalDays?: number | null
-  phone?:    string
-  email?:    string
-  /** Data-URI avatar, when imported from contacts. */
-  photo?:    string
   notes?:    string
   /** YYYY-MM-DD — the day this friend entered the app; the clock starts here
    *  when there is no meetup logged yet. */
@@ -69,10 +71,10 @@ export interface MeetupEntry {
 export interface ImportedContact {
   key:    string
   name:   string
+  /** Shown in the picker to tell two people with the same name apart. Orbit
+   *  does not keep it — a friend is a name and a rhythm, nothing else. */
   phone?: string
   email?: string
-  photo?: string
 }
 
-export type Freshness = 'fresh' | 'soon' | 'due' | 'overdue'
-export type Tab = 'orbit' | 'friends' | 'timeline' | 'stats'
+export type Tab = 'orbit' | 'friends' | 'levels' | 'timeline' | 'stats'
