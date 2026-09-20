@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import {
-  Bell, BellOff, Check, Download, Eye, EyeOff, Moon, Plus, Sun, Trash2, Upload, X,
+  Bell, BellOff, Check, Download, Eye, EyeOff, Gauge, Moon, Plus, Sun, Trash2, Upload, X,
 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { humanDuration } from '@/lib/dates'
@@ -15,11 +15,10 @@ export default function Sidebar() {
   const s = useStore()
   const { granted, loading, request, isNative } = useNotificationPermission()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [editingTier, setEditingTier] = useState<string | null>(null)
-  const [newTierName, setNewTierName] = useState('')
-  const [newTierDays, setNewTierDays] = useState('')
   const [editingTag, setEditingTag]   = useState<string | null>(null)
   const [newTagName, setNewTagName]   = useState('')
+  const [editingKind, setEditingKind] = useState<string | null>(null)
+  const [newKindName, setNewKindName] = useState('')
   const [message, setMessage] = useState('')
 
   async function toggleNotifications() {
@@ -52,13 +51,6 @@ export default function Sidebar() {
       .catch(e => setMessage(`Import failed: ${e.message}`))
   }
 
-  function addTier() {
-    const days = parseInt(newTierDays, 10)
-    if (!newTierName.trim() || !days || days < 1) return
-    s.createTier({ name: newTierName.trim(), intervalDays: days, color: ACCENTS[s.tiers.length % ACCENTS.length] })
-    setNewTierName(''); setNewTierDays('')
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex" onClick={() => s.setSidebarOpen(false)}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -74,75 +66,24 @@ export default function Sidebar() {
         {/* ── Friendship levels ─────────────────────────────────────────── */}
         <section>
           <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">Friendship levels</h3>
-          <div className="space-y-1.5">
-            {s.tiers.map(t => {
-              const count = s.friends.filter(f => f.tierId === t.id).length
-              return editingTier === t.id ? (
-                <div key={t.id} className="bg-slate-800 rounded-lg p-2 space-y-2">
-                  <input
-                    value={t.name}
-                    onChange={e => s.updateTier(t.id, { name: e.target.value })}
-                    className="input !py-1 !text-xs"
-                  />
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number" min={1} value={t.intervalDays}
-                      onChange={e => s.updateTier(t.id, { intervalDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                      className="input !py-1 !text-xs"
-                    />
-                    <span className="text-[11px] text-slate-400 shrink-0">days</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {ACCENTS.map(c => (
-                      <button
-                        key={c}
-                        onClick={() => s.updateTier(t.id, { color: c })}
-                        className="w-5 h-5 rounded-full border border-slate-600"
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                    <button onClick={() => setEditingTier(null)} className="btn-ghost !p-1 ml-auto">
-                      <Check size={14} />
-                    </button>
-                  </div>
-                  {!t.builtin && (
-                    <button
-                      onClick={() => {
-                        const fallback = s.tiers.find(o => o.id !== t.id)
-                        if (fallback) { s.deleteTier(t.id, fallback.id); setEditingTier(null) }
-                      }}
-                      className="text-[11px] text-rose-400 flex items-center gap-1"
-                    >
-                      <Trash2 size={11} /> Delete level ({count} friends move to the next one)
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <button
-                  key={t.id}
-                  onClick={() => setEditingTier(t.id)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
-                >
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                  <span className="text-sm flex-1 truncate">{t.name}</span>
-                  <span className="text-[11px] text-slate-500">{humanDuration(t.intervalDays)}</span>
-                  <span className="text-[11px] text-slate-600 w-5 text-right">{count}</span>
-                </button>
-              )
-            })}
+          <div className="space-y-1">
+            {s.tiers.map(t => (
+              <div key={t.id} className="flex items-center gap-2 px-2 py-1">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                <span className="text-sm flex-1 truncate">{t.name}</span>
+                <span className="text-[11px] text-slate-500">{humanDuration(t.intervalDays)}</span>
+                <span className="text-[11px] text-slate-600 w-5 text-right">
+                  {s.friends.filter(f => f.tierId === t.id).length}
+                </span>
+              </div>
+            ))}
           </div>
-
-          <div className="flex items-center gap-1.5 mt-2">
-            <input
-              value={newTierName} onChange={e => setNewTierName(e.target.value)}
-              placeholder="New level" className="input !py-1 !text-xs"
-            />
-            <input
-              type="number" min={1} value={newTierDays} onChange={e => setNewTierDays(e.target.value)}
-              placeholder="days" className="input !py-1 !text-xs !w-20"
-            />
-            <button onClick={addTier} className="btn-ghost !p-1.5"><Plus size={15} /></button>
-          </div>
+          <button
+            onClick={() => { s.setActiveTab('levels'); s.setSidebarOpen(false) }}
+            className="btn-ghost w-full justify-center mt-2"
+          >
+            <Gauge size={15} /> Edit levels &amp; rhythm
+          </button>
         </section>
 
         {/* ── Circles ───────────────────────────────────────────────────── */}
@@ -206,6 +147,76 @@ export default function Sidebar() {
             />
             <button
               onClick={() => { s.createTag(newTagName); setNewTagName('') }}
+              className="btn-ghost !p-1.5"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+        </section>
+
+        {/* ── Kinds of hangout ──────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">Kinds of hangout</h3>
+          <div className="space-y-1.5">
+            {s.kinds.map(k => {
+              const count = s.friends.reduce(
+                (n, f) => n + f.meetups.filter(m => m.kindIds?.includes(k.id)).length, 0,
+              )
+              return editingKind === k.id ? (
+                <div key={k.id} className="bg-slate-800 rounded-lg p-2 space-y-2">
+                  <input
+                    value={k.name}
+                    onChange={e => s.updateKind(k.id, { name: e.target.value })}
+                    className="input !py-1 !text-xs"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    {PALETTE.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => s.updateKind(k.id, { color: c })}
+                        className="w-5 h-5 rounded-full border border-slate-600"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                    <button onClick={() => setEditingKind(null)} className="btn-ghost !p-1 ml-auto">
+                      <Check size={14} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { s.deleteKind(k.id); setEditingKind(null) }}
+                    className="text-[11px] text-rose-400 flex items-center gap-1"
+                  >
+                    <Trash2 size={11} /> Delete kind (removed from {count} meetups)
+                  </button>
+                </div>
+              ) : (
+                <button
+                  key={k.id}
+                  onClick={() => setEditingKind(k.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: k.color }} />
+                  <span className="text-sm flex-1 truncate">{k.name}</span>
+                  <span className="text-[11px] text-slate-600 w-5 text-right">{count}</span>
+                </button>
+              )
+            })}
+            {!s.kinds.length && (
+              <p className="text-[11px] text-slate-500 px-2">
+                What the hangout actually was — dinner, coffee, a walk, a call.
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-2">
+            <input
+              value={newKindName}
+              onChange={e => setNewKindName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { s.createKind(newKindName); setNewKindName('') } }}
+              placeholder="New kind"
+              className="input !py-1 !text-xs"
+            />
+            <button
+              onClick={() => { s.createKind(newKindName); setNewKindName('') }}
               className="btn-ghost !p-1.5"
             >
               <Plus size={15} />
