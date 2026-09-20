@@ -1,22 +1,32 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { History, MapPin, Users } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
 import { humanAgo, parseLocalDate } from '@/lib/dates'
-import { INITIATOR_LABEL, meetupEntries } from '@/lib/scoring'
+import { INITIATOR_LABEL, kindsOf, meetupEntries } from '@/lib/scoring'
 import Avatar from './Avatar'
+import TagChip from './TagChip'
 
 /** "September 2026" heading for a YYYY-MM-DD date. */
 const monthLabel = (date: string) =>
   parseLocalDate(date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
 export default function TimelineTab() {
-  const { friends } = useStore()
+  const { friends, kinds } = useStore()
   const ui = useUi()
+  const [kindFilter, setKindFilter] = useState<string[]>([])
 
-  const entries = useMemo(() => meetupEntries(friends), [friends])
+  const all = useMemo(() => meetupEntries(friends), [friends])
+  // Several kinds selected = meetups carrying all of them, matching how the
+  // Friends tab treats circles.
+  const entries = useMemo(
+    () => (kindFilter.length
+      ? all.filter(e => kindFilter.every(k => e.meetup.kindIds?.includes(k)))
+      : all),
+    [all, kindFilter],
+  )
 
-  if (!entries.length) {
+  if (!all.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center">
         <History size={32} className="text-slate-600" />
@@ -27,9 +37,35 @@ export default function TimelineTab() {
   }
 
   let lastMonth = ''
+  const usedKinds = kinds.filter(k => all.some(e => e.meetup.kindIds?.includes(k.id)))
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-3">
+    <div className="flex-1 overflow-y-auto px-4 pt-3 pb-24">
+      {usedKinds.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
+          {usedKinds.map(k => (
+            <TagChip
+              key={k.id}
+              tag={k}
+              count={all.filter(e => e.meetup.kindIds?.includes(k.id)).length}
+              active={kindFilter.includes(k.id)}
+              onClick={() =>
+                setKindFilter(sel => (sel.includes(k.id) ? sel.filter(i => i !== k.id) : [...sel, k.id]))
+              }
+            />
+          ))}
+          {kindFilter.length > 0 && (
+            <button onClick={() => setKindFilter([])} className="text-[10px] text-slate-500 shrink-0 px-1">
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {!entries.length && (
+        <p className="text-sm text-slate-500 text-center py-10">No meetup matches this kind.</p>
+      )}
+
       {entries.map(({ meetup, friends: present }) => {
         const month = monthLabel(meetup.date)
         const heading = month !== lastMonth ? month : null
@@ -48,7 +84,7 @@ export default function TimelineTab() {
                 <div className="flex -space-x-2 shrink-0">
                   {present.slice(0, 3).map(f => (
                     <button key={f.id} onClick={() => ui.openFriend(f)} title={f.name}>
-                      <Avatar name={f.name} photo={f.photo} size={34} ring="#0f172a" />
+                      <Avatar name={f.name} size={34} ring="#0f172a" />
                     </button>
                   ))}
                 </div>
@@ -72,6 +108,7 @@ export default function TimelineTab() {
                         {INITIATOR_LABEL[meetup.initiator]}
                       </span>
                     )}
+                    {kindsOf(meetup, kinds).map(k => <TagChip key={k.id} tag={k} />)}
                   </div>
                   {meetup.note && (
                     <p className="text-xs text-slate-400 mt-1 whitespace-pre-wrap">{meetup.note}</p>

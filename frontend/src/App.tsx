@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CalendarPlus } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 import { useStore } from '@/store/useStore'
@@ -8,6 +9,7 @@ import { scheduleWeeklyNudge } from '@/hooks/useLocalNotifications'
 import Header             from '@/components/layout/Header'
 import OrbitTab           from '@/components/OrbitTab'
 import FriendsTab         from '@/components/FriendsTab'
+import LevelsTab          from '@/components/LevelsTab'
 import TimelineTab        from '@/components/TimelineTab'
 import StatsTab           from '@/components/StatsTab'
 import Sidebar            from '@/components/Sidebar'
@@ -110,9 +112,25 @@ export default function App() {
         <main className="flex-1 overflow-hidden flex flex-col">
           {activeTab === 'orbit'    ? <OrbitTab />
            : activeTab === 'friends' ? <FriendsTab />
+           : activeTab === 'levels'  ? <LevelsTab />
            : activeTab === 'timeline' ? <TimelineTab />
            : <StatsTab />}
         </main>
+
+        {/* Logging a meetup is the thing you do most, so it gets a thumb-sized
+            target on every tab. Hidden while a modal is up. */}
+        {!modal && (
+          <button
+            onClick={() => ui.openLog()}
+            className="fixed bottom-5 right-5 z-30 w-14 h-14 rounded-full shadow-lg shadow-black/40
+                       flex items-center justify-center text-slate-950 active:scale-95 transition-transform"
+            style={{ backgroundColor: 'var(--accent)' }}
+            title="Log a meetup"
+            aria-label="Log a meetup"
+          >
+            <CalendarPlus size={24} />
+          </button>
+        )}
 
         {sidebarOpen && <Sidebar />}
 

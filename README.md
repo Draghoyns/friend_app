@@ -5,11 +5,12 @@
 An app that remembers the last time you saw each friend and tells you **who to see next**.
 
 Every friend has a **friendship level** that sets how often you want to see them — an inner-circle
-friend every two weeks, an acquaintance once a year. Orbit divides the days since you last met by
+friend once a month, an acquaintance once a year. Orbit divides the days since you last met by
 that target and ranks everyone by how far behind they are, so a close friend you saw last month
 outranks an acquaintance you last saw in spring.
 
 - All data lives **on the device** — no account, no server, no network calls
+- Nothing ever leaves the app: no dialler, no mail client, no phone numbers stored
 - Import friends from your phone's **contacts** (searchable), or add them by hand
 
 ---
@@ -17,53 +18,66 @@ outranks an acquaintance you last saw in spring.
 ## Features
 
 ### Who next
-- The single most overdue friend, big and front-and-centre, with **I saw them**, **Call** and **Not now**
+- The single most overdue friend, big and front-and-centre, with **I saw them**, **I called**, **I texted** and **Not now**
 - The next eight below, ranked the same way
+- **I'm socially tired** — one tap snoozes everyone currently overdue for a week
 - Tells you plainly when nobody is overdue
 
 ### Friend detail
-- Tap anyone to open their sheet: name, photo, friendship level, circles
-- **At a glance** — last seen · time left (or overdue by) · total meetups
+- Tap anyone to open their sheet: name, friendship level, circles
+- **At a glance** — last seen · time left (or overdue by) · total meetups, over a progress bar
 - **Who reaches out** — a bar showing how the initiative splits between you two
-- **Actions** — I saw them · Call · Mail · Snooze · Pause · Edit
-- **Entry log** — every meetup concerning that friend, with date, place, note, who was also there, and who made it happen (tap the badge to set or change it)
+- **Actions** — I saw them · I called · I texted · Snooze · Pause · Edit
+- **I called** and **I texted** log a meetup dated today in one tap, tagged as such. They open nothing outside Orbit — a second tap on the same day is ignored rather than logged twice
+- **Entry log** — every meetup concerning that friend, with date, kind, place, note, who was also there, and who made it happen (tap the badge to set or change it)
 
 ### Friends
-- **Friendship levels** — Inner circle (2 weeks) · Close friend (1 month) · Good friend (2.5 months) · Friendly (5 months) · Acquaintance (1 year)
+- **Friendship levels** — Inner circle (1 month) · Close friend (2 months) · Good friend (4 months) · Friendly (8 months) · Acquaintance (1 year)
 - **Custom rhythm** — override the level for one person ("see Marc every 45 days")
-- **Freshness** — each friend is Fresh · Soon · Due · Overdue, with a progress bar toward their next meetup
+- **Progress bar** — how far through their interval each friend is, in their level's color. Full means it's time. No labels, no grading people
 - **Circles** — free-form tags (work, climbing, school) on top of the levels; filter by several at once
 - **Search** by name or notes; press `/` to focus
 - **Filter** by friendship level and circle; sort by most overdue, A → Z, or seen recently
 - **Snooze** — 3 days, a week, 2 weeks, a month, 3 months, or until a date you pick; **pause** a friend indefinitely without deleting them
 - **Notes** per friend — kids' names, what they're into, what to ask about next time
 
+### Levels
+- The whole ladder on one screen — **rename**, **recolor** and **re-time** every friendship level
+- Set the rhythm by typing a number of days, or tap a preset: 1 week · 2 weeks · 1 month · 2 months · 3 months · 6 months · 1 year
+- Levels stay sorted by how often they ask for a meetup, and each shows how many friends sit on it
+- **Add your own** level, or delete a custom one (its friends move to another level)
+- **Custom rhythms** — every friend who overrides their level, listed in one place: retune them, or reset them back onto the level
+
 ### Meetups
+- A **+** button sits in the bottom-right corner of every tab — logging a meetup is never more than one tap away
 - Log a meetup with a **date**, an optional **place** and a **note**
-- **Group meetups** — pick several friends and log the evening once; everyone present gets it, and editing or deleting it applies to the whole group
+- **Kind of hangout** — free-form tags on the meetup itself: dinner, coffee, a walk, a call. Reusable across meetups, and filterable in the Timeline
+- **Several friends at once** — pick everyone who was there and log the occasion once, whatever time of day it was; everyone present gets it, and editing or deleting it applies to all of them
 - **Who reached out** — mark each meetup as yours, theirs or mutual
 - Logging resets the clock for everyone present, and clears any snooze
 
 ### Timeline
 - Every meetup you ever logged, newest first, grouped by month
-- A group evening appears once, with stacked avatars and everyone's name
+- Filter by **kind of hangout**
+- A meetup with several friends appears once, with stacked avatars and everyone's name
 
 ### Stats
 - Period picker — **Month**, **Quarter**, **Year**
 - Friends in orbit · meetups logged · **on-track percentage**
-- Breakdown of who needs you (Fresh / Soon / Due / Overdue)
+- **Furthest behind** — the five friends most past their interval, with progress bars
+- **By kind of hangout** — what your time together actually looks like
 - **Who reaches out** — your overall initiative split, and the friends where you do 75%+ of it
 - On-track count per friendship level and per circle
 - Who you saw the most in the period
 
 ### Import from contacts
-- On the phone: reads the address book and gives you a **searchable list**; contacts already in Orbit are marked
-- In a browser: uses the Contact Picker API where available, otherwise points you to manual entry
-- Picking a contact prefills the new-friend form with name, phone, email and photo
+- **Phone build only** — reads the address book and gives you a **searchable list**; contacts already in Orbit are marked. The browser build has no import, only manual entry
+- Picking a contact prefills the new-friend form with the name. Numbers and addresses are shown in the picker to tell two people apart, but Orbit does not keep them
 
 ### Sidebar
-- **Friendship levels** — rename, re-time and recolor them; add your own; delete a custom one (its friends move to another level)
+- **Friendship levels** — the current ladder at a glance, with a shortcut into the Levels tab to edit it
 - **Circles** — create, rename, recolor and delete them
+- **Kinds of hangout** — the same, for what a meetup was
 - **Weekly nudge** — a local notification on a chosen weekday and time, listing who is overdue
 - **Appearance** — dark / light theme, six accent presets plus a color wheel
 - **Data** — export the whole orbit as JSON, import it back; show/hide paused friends
@@ -115,7 +129,10 @@ separate from the phone's data.
 
 **2a. Download and install [Android Studio](https://developer.android.com/studio)**
 
-> **Java:** Android Studio ships with its own JDK — do not install a separate one. An older system Java will break the Gradle build.
+> **Java:** Android Studio ships with its own JDK — do not install a separate one. `just android`
+> points Gradle at it deliberately, because the Java on a Mac's PATH is often 8, and the Android
+> Gradle Plugin needs 17+. If you ever see `No matching variant ... compatible with Java 8`, that
+> is what happened.
 
 **2b. Download the Android SDK**
 
@@ -196,6 +213,11 @@ This builds the web assets, syncs them into the Android project, compiles the AP
 > If it fails with `ERR_SDK_NOT_FOUND`, your terminal doesn't have `ANDROID_HOME` set — open a new
 > terminal window and try again (the shell setup in Step 2c only takes effect in new windows).
 
+> If the APK builds but the install is refused with `INSTALL_FAILED_USER_RESTRICTED`, the phone is
+> blocking it: turn on **Install via USB** in Developer options (Step 4) and run it again.
+
+To check the build alone, without a phone plugged in, run `just apk`.
+
 ---
 
 ## iOS
@@ -234,6 +256,7 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 | `just dev` | Install deps and start the dev server at `localhost:5174` |
 | `just install` | Install frontend npm dependencies |
 | `just build` | Build the frontend into `frontend/dist` |
+| `just apk` | Build the debug APK — same as `just android` without the install, no device needed |
 | `just preview` | Serve the production build locally |
 | `just add-platforms` | Create the Android/iOS projects and patch in the contacts permission |
 | `just cap-sync` | Sync compiled assets into the native projects |
@@ -251,13 +274,14 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 - [x] Reciprocity — track who reached out first, flag friendships you always initiate
 
 ### Friends
+- [x] A "socially tired" escape hatch — snooze everyone overdue at once
 - [ ] Birthdays, with their own reminder independent of the meetup rhythm
 - [ ] Seasonal rhythms — someone you only see in summer shouldn't nag you in January
 - [x] Circles / tags (work, climbing, school) on top of friendship levels
 - [x] Snooze durations — 3 days to 3 months, or a specific date
 
 ### Data
-- [ ] Two-way contact sync — keep names and photos fresh when the address book changes
+- [ ] Two-way contact sync — keep names fresh when the address book changes
 - [ ] Calendar import — infer meetups from events you both attended
 - [ ] iCloud / Google Drive backup (native Capacitor plugin)
 

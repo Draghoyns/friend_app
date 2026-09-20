@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Friend, FriendCreate, FriendUpdate, MeetupCreate, Tab, Tag, Tier } from '@/types'
-import { DEFAULT_TIERS, PALETTE } from '@/lib/scoring'
+import { DEFAULT_TIERS, LEGACY_TIER_INTERVALS, PALETTE, isOverdue } from '@/lib/scoring'
 import { today, toLocalDateStr } from '@/lib/dates'
 
 const genId = () => Date.now() + Math.floor(Math.random() * 1000)
@@ -10,7 +10,10 @@ const genKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).sl
 interface AppStore {
   friends: Friend[]
   tiers:   Tier[]
+  /** Circles — how friends are grouped. */
   tags:    Tag[]
+  /** Kinds of hangout — what a meetup actually was. */
+  kinds:   Tag[]
 
   activeTab:   Tab
   sidebarOpen: boolean
@@ -40,11 +43,16 @@ interface AppStore {
    *  their own copy, linked by a shared groupId so the timeline can show the
    *  evening as a single entry. */
   logMeetup:      (friendIds: number[], data: MeetupCreate) => void
+  /** One-tap entry for a call or a text: today, you reached out, tagged with
+   *  the matching kind. Nothing leaves the app. */
+  logTouch:       (friendId: number, kindName: string) => void
   updateMeetup:   (friendId: number, meetupId: number, data: Partial<MeetupCreate>) => void
   /** Deleting a group meetup removes every copy of it. */
   deleteMeetup:   (friendId: number, meetupId: number) => void
 
   /** Push a friend out of the suggestions for N days. */
+  /** "I'm socially tired" — push everyone already overdue out by N days. */
+  snoozeOverdue: (days: number) => number
   snooze:      (friendId: number, days: number) => void
   snoozeUntil: (friendId: number, date: string) => void
   unsnooze:    (friendId: number) => void
@@ -60,6 +68,11 @@ interface AppStore {
   deleteTag:   (id: string) => void
   toggleTag:   (friendId: number, tagId: string) => void
 
+  createKind:  (name: string, color?: string) => Tag | null
+  updateKind:  (id: string, data: Partial<Omit<Tag, 'id'>>) => void
+  /** Deleting a kind detaches it from every meetup. */
+  deleteKind:  (id: string) => void
+
   exportData: () => string
   importData: (json: string) => void
 }
@@ -70,6 +83,7 @@ export const useStore = create<AppStore>()(
       friends: [],
       tiers:   DEFAULT_TIERS,
       tags:    [],
+      kinds:   [],
 
       activeTab:   'orbit',
       sidebarOpen: false,
@@ -126,6 +140,21 @@ export const useStore = create<AppStore>()(
         }))
       },
 
+      logTouch: (friendId, kindName) => {
+        const kind = get().createKind(kindName)
+        // These are one-tap buttons on a phone — a fumbled double-tap should
+        // not leave two identical entries on the same day.
+        const already = get().friends
+          .find(f => f.id === friendId)?.meetups
+          .some(m => m.date === today() && kind && m.kindIds?.includes(kind.id))
+        if (already) return
+        get().logMeetup([friendId], {
+          date:      today(),
+          initiator: 'me',
+          kindIds:   kind ? [kind.id] : [],
+        })
+      },
+
       updateMeetup: (friendId, meetupId, data) => {
         const groupId = get().friends
           .find(f => f.id === friendId)?.meetups
@@ -156,6 +185,23 @@ export const useStore = create<AppStore>()(
             ),
           })),
         }))
+      },
+
+      snoozeOverdue: days => {
+        const { friends, tiers } = get()
+        const until = new Date()
+        until.setDate(until.getDate() + days)
+        const date = toLocalDateStr(until)
+        // Paused friends are already out of the way; snoozing them would only
+        // put a date on something that has no clock running.
+        const targets = friends.filter(f => !f.paused && isOverdue(f, tiers))
+        if (targets.length) {
+          const ids = new Set(targets.map(f => f.id))
+          set(s => ({
+            friends: s.friends.map(f => (ids.has(f.id) ? { ...f, snoozedUntil: date } : f)),
+          }))
+        }
+        return targets.length
       },
 
       snooze: (friendId, days) => {
@@ -231,9 +277,40 @@ export const useStore = create<AppStore>()(
           ),
         })),
 
+      createKind: (name, color) => {
+        const trimmed = name.trim()
+        if (!trimmed) return null
+        const existing = get().kinds.find(k => k.name.toLowerCase() === trimmed.toLowerCase())
+        if (existing) return existing
+        const kind: Tag = {
+          id:    `kind-${genId()}`,
+          name:  trimmed,
+          color: color ?? PALETTE[get().kinds.length % PALETTE.length]!,
+        }
+        set(s => ({ kinds: [...s.kinds, kind] }))
+        return kind
+      },
+
+      updateKind: (id, data) =>
+        set(s => ({ kinds: s.kinds.map(k => (k.id === id ? { ...k, ...data } : k)) })),
+
+      deleteKind: id =>
+        set(s => ({
+          kinds:   s.kinds.filter(k => k.id !== id),
+          friends: s.friends.map(f => ({
+            ...f,
+            meetups: f.meetups.map(m =>
+              m.kindIds?.includes(id) ? { ...m, kindIds: m.kindIds.filter(k => k !== id) } : m,
+            ),
+          })),
+        })),
+
       exportData: () =>
         JSON.stringify(
-          { version: 2, exportedAt: new Date().toISOString(), friends: get().friends, tiers: get().tiers, tags: get().tags },
+          {
+            version: 4, exportedAt: new Date().toISOString(),
+            friends: get().friends, tiers: get().tiers, tags: get().tags, kinds: get().kinds,
+          },
           null, 2,
         ),
 
@@ -244,18 +321,41 @@ export const useStore = create<AppStore>()(
           friends: data.friends.map((f: Friend) => ({ ...f, tagIds: f.tagIds ?? [] })),
           tiers:   Array.isArray(data.tiers) && data.tiers.length ? data.tiers : DEFAULT_TIERS,
           tags:    Array.isArray(data.tags) ? data.tags : [],
+          kinds:   Array.isArray(data.kinds) ? data.kinds : [],
         })
       },
     }),
     {
       name: 'orbit-store',
       // Bump when the persisted shape changes so old phones migrate cleanly.
-      version: 2,
+      version: 4,
       migrate: (state: unknown, from: number) => {
-        const s = state as { friends?: Friend[]; tags?: Tag[] }
+        const s = state as { friends?: Friend[]; tags?: Tag[]; tiers?: Tier[]; kinds?: Tag[] }
         if (from < 2) {
           s.friends = (s.friends ?? []).map(f => ({ ...f, tagIds: f.tagIds ?? [] }))
           s.tags = s.tags ?? []
+        }
+        if (from < 3) {
+          // The built-in ladder was stretched so nothing asks for more than one
+          // meetup a month. Re-time only the levels still sitting on their old
+          // default — anything the user re-timed themselves stays as they set it.
+          s.tiers = (s.tiers ?? DEFAULT_TIERS).map(t => {
+            const legacy = LEGACY_TIER_INTERVALS[t.id]
+            const fresh  = DEFAULT_TIERS.find(d => d.id === t.id)
+            return legacy !== undefined && fresh && t.intervalDays === legacy
+              ? { ...t, intervalDays: fresh.intervalDays }
+              : t
+          })
+        }
+        if (from < 4) {
+          // Orbit no longer holds photos or contact details — a friend is a
+          // name and a rhythm. Drop what old installs still carry.
+          s.friends = (s.friends ?? []).map(f => {
+            const { photo: _p, phone: _h, email: _e, ...rest } =
+              f as Friend & { photo?: string; phone?: string; email?: string }
+            return rest as Friend
+          })
+          s.kinds = s.kinds ?? []
         }
         return s
       },

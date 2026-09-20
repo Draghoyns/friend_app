@@ -5,17 +5,19 @@ import { useStore } from '@/store/useStore'
 import { today } from '@/lib/dates'
 import { INITIATOR_LABEL } from '@/lib/scoring'
 import Avatar from './Avatar'
+import TagPicker from './TagPicker'
 
 const INITIATORS: Initiator[] = ['me', 'them', 'mutual']
 
-/** One evening, any number of friends. Everyone selected gets their own copy
- *  of the meetup, linked so the timeline shows it once. */
+/** One meetup, any number of friends, any time of day. Everyone selected gets
+ *  their own copy, linked so the timeline shows the occasion once. */
 export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; onClose: () => void }) {
   const { friends, logMeetup } = useStore()
   const [attendees, setAttendees] = useState<number[]>(friend ? [friend.id] : [])
   const [date, setDate]           = useState(today())
   const [place, setPlace]         = useState('')
   const [note, setNote]           = useState('')
+  const [kindIds, setKindIds]     = useState<string[]>([])
   const [initiator, setInitiator] = useState<Initiator | null>(null)
   const [query, setQuery]         = useState('')
   const [picking, setPicking]     = useState(!friend)
@@ -43,6 +45,7 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
     if (!attendees.length) return
     logMeetup(attendees, {
       date,
+      kindIds,
       place:     place.trim() || undefined,
       note:      note.trim()  || undefined,
       initiator: initiator ?? undefined,
@@ -62,7 +65,7 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
         <div className="flex items-center gap-3 mb-4">
           <div className="flex -space-x-2">
             {selected.slice(0, 3).map(f => (
-              <Avatar key={f.id} name={f.name} photo={f.photo} size={36} ring="#0f172a" />
+              <Avatar key={f.id} name={f.name} size={36} ring="#0f172a" />
             ))}
             {!selected.length && (
               <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
@@ -73,7 +76,7 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold truncate">{title}</h2>
             <p className="text-xs text-slate-400">
-              {attendees.length > 1 ? 'One meetup, logged for everyone present.' : 'Logging a meetup resets their clock.'}
+              {attendees.length > 1 ? 'One occasion, logged for everyone present.' : 'Logging a meetup resets their clock.'}
             </p>
           </div>
           <button onClick={onClose} className="btn-ghost !p-1.5"><X size={18} /></button>
@@ -89,7 +92,7 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
               className="inline-flex items-center gap-1 pl-1 pr-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs"
               title="Remove"
             >
-              <Avatar name={f.name} photo={f.photo} size={18} />
+              <Avatar name={f.name} size={18} />
               {f.name}
               <X size={12} className="text-slate-500" />
             </button>
@@ -120,7 +123,7 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
                   onClick={() => { setAttendees(a => [...a, f.id]); setQuery('') }}
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
                 >
-                  <Avatar name={f.name} photo={f.photo} size={24} />
+                  <Avatar name={f.name} size={24} />
                   <span className="text-sm truncate">{f.name}</span>
                 </button>
               ))}
@@ -135,6 +138,15 @@ export default function LogMeetupModal({ friend, onClose }: { friend?: Friend; o
 
         <label className="label">When</label>
         <input type="date" value={date} max={today()} onChange={e => setDate(e.target.value)} className="input mb-3" />
+
+        <label className="label">What kind of hangout <span className="text-slate-600">(optional)</span></label>
+        <div className="mb-3">
+          <TagPicker
+            kind="hangout"
+            selected={kindIds}
+            onToggle={id => setKindIds(ids => (ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]))}
+          />
+        </div>
 
         <label className="label">Who made it happen <span className="text-slate-600">(optional)</span></label>
         <div className="flex gap-1.5 mb-3">

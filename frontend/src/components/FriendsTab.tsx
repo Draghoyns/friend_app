@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { ArrowDownWideNarrow, Phone, Search, UserPlus, Users } from 'lucide-react'
+import { ArrowDownWideNarrow, Contact, Search, UserPlus, Users } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
-import { daysSinceSeen, freshnessOf, isEligible, urgency } from '@/lib/scoring'
+import { contactsAvailable } from '@/lib/contacts'
+import { daysSinceSeen, isEligible, isOverdue, urgency } from '@/lib/scoring'
 import FriendCard from './FriendCard'
 import TagChip from './TagChip'
 
@@ -33,7 +34,7 @@ export default function FriendsTab() {
     return sorted
   }, [friends, tiers, query, sort, tierFilter, tagFilter, showPaused])
 
-  const overdue = friends.filter(f => isEligible(f) && freshnessOf(urgency(f, tiers)) === 'overdue').length
+  const overdue = friends.filter(f => isEligible(f) && isOverdue(f, tiers)).length
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -52,9 +53,11 @@ export default function FriendsTab() {
           <button onClick={() => ui.openLog()} className="btn-ghost" title="Log a group meetup">
             <Users size={16} />
           </button>
-          <button onClick={() => ui.openImport()} className="btn-ghost" title="Import from contacts">
-            <Phone size={16} />
-          </button>
+          {contactsAvailable() && (
+            <button onClick={() => ui.openImport()} className="btn-ghost" title="Import from contacts">
+              <Contact size={16} />
+            </button>
+          )}
           <button onClick={() => ui.openNew()} className="btn-primary" title="New friend">
             <UserPlus size={16} />
           </button>
@@ -122,13 +125,13 @@ export default function FriendsTab() {
         )}
 
         {overdue > 0 && (
-          <p className="text-[11px] text-rose-400">
+          <p className="text-[11px] text-slate-400">
             {overdue} {overdue === 1 ? 'person is' : 'people are'} overdue.
           </p>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-24 space-y-2">
         {list.map(f => (
           <FriendCard key={f.id} friend={f} tiers={tiers} tags={tags} onOpen={ui.openFriend} onLog={ui.openLog} />
         ))}

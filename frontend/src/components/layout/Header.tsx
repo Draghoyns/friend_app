@@ -1,4 +1,4 @@
-import { CalendarClock, History, Orbit, PieChart, UserPlus, Users } from 'lucide-react'
+import { CalendarClock, Gauge, History, Orbit, PieChart, UserPlus, Users } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
 import type { Tab } from '@/types'
@@ -6,6 +6,7 @@ import type { Tab } from '@/types'
 const tabs: { id: Tab; label: string; icon: typeof Orbit }[] = [
   { id: 'orbit',    label: 'Who next', icon: CalendarClock },
   { id: 'friends',  label: 'Friends',  icon: Users         },
+  { id: 'levels',   label: 'Levels',   icon: Gauge         },
   { id: 'timeline', label: 'Timeline', icon: History       },
   { id: 'stats',    label: 'Stats',    icon: PieChart      },
 ]
