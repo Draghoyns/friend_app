@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #38bdf8;
+}
+
+@layer base {
+  html, body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    height: 100%;
+  }
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+  }
+  *::-webkit-scrollbar        { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-track  { background: transparent; }
+  *::-webkit-scrollbar-thumb  { background: #334155; border-radius: 3px; }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
+           transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950;
+    --tw-ring-color: var(--accent);
+  }
+  .btn-primary {
+    @apply btn text-slate-950 font-semibold;
+    background-color: var(--accent);
+  }
+  .btn-primary:hover {
+    background-color: color-mix(in srgb, var(--accent) 80%, white);
+  }
+  .btn-ghost {
+    @apply btn text-slate-400 hover:text-slate-100 hover:bg-slate-800;
+  }
+  .btn-danger {
+    @apply btn bg-rose-800 hover:bg-rose-700 text-rose-100;
+  }
+  .input {
+    @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+           placeholder-slate-500 focus:outline-none focus:ring-2 focus:border-transparent
+           transition-colors;
+    --tw-ring-color: var(--accent);
+  }
+  .textarea {
+    @apply input resize-none;
+    field-sizing: content;
+    min-height: 2.5rem;
+  }
+  .card {
+    @apply bg-slate-800 border border-slate-700 rounded-xl;
+  }
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+  .modal {
+    @apply bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg
+           animate-fade-in max-h-[90vh] overflow-y-auto;
+  }
+  .label {
+    @apply block text-xs font-medium text-slate-400 mb-1;
+  }
+}
+
+/* ── Light theme overrides ───────────────────────────────────────────────── */
+html.light body,
+html.light .bg-slate-950 { background-color: #f8fafc !important; }
+html.light .bg-slate-900 { background-color: #f1f5f9 !important; }
+html.light .bg-slate-800 { background-color: #e2e8f0 !important; }
+html.light .bg-slate-800\/60 { background-color: #e2e8f0cc !important; }
+html.light .bg-slate-900\/60 { background-color: #f1f5f9cc !important; }
+html.light .bg-slate-950\/80 { background-color: #f8fafccc !important; }
+html.light .bg-slate-700 { background-color: #cbd5e1 !important; }
+html.light .text-slate-100 { color: #0f172a !important; }
+html.light .text-slate-300 { color: #1e293b !important; }
+html.light .text-slate-400 { color: #475569 !important; }
+html.light .text-slate-500 { color: #64748b !important; }
+html.light .text-slate-600 { color: #94a3b8 !important; }
+html.light .border-slate-700 { border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important; }
+html.light .border-slate-800 { border-color: color-mix(in srgb, var(--accent) 25%, transparent) !important; }
+html.light .hover\:bg-slate-800:hover { background-color: color-mix(in srgb, var(--accent) 25%, white) !important; }
+html.light .hover\:bg-slate-800\/60:hover { background-color: color-mix(in srgb, var(--accent) 18%, white) !important; }
+html.light * { scrollbar-color: var(--accent) transparent; }
+html.light .text-sky-400     { color: #0284c7 !important; }
+html.light .text-rose-400    { color: #e11d48 !important; }
+html.light .text-amber-400   { color: #b45309 !important; }
+html.light .text-emerald-400 { color: #059669 !important; }

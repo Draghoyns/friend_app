@@ -1,0 +1,18 @@
+# Node
+node_modules/
+dist/
+*.log
+.npm
+
+# Capacitor native projects (generated with `npx cap add`)
+frontend/android/
+frontend/ios/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
