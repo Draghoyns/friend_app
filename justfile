@@ -28,6 +28,15 @@ add-platforms:
     cd frontend && npx cap add android || true
     cd frontend && npx cap add ios || true
     ./scripts/patch-permissions.sh
+    just icons
+
+# Rebuild every app and notification icon from frontend/assets/source
+icons:
+    # The native projects are generated and gitignored, so the icons are rebuilt
+    # from source after `npx cap add` rather than being committed.
+    node scripts/make-icon-sources.mjs
+    cd frontend && npx capacitor-assets generate --android --ios
+    node scripts/install-notification-icon.mjs
 
 # Sync compiled assets into the native projects (after a build)
 cap-sync:
