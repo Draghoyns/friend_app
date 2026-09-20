@@ -173,9 +173,23 @@ The `android/` and `ios/` folders are generated, not committed. Create them once
 just add-platforms
 ```
 
-That runs `npx cap add android` / `npx cap add ios` and then patches in the contacts permission
+That runs `npx cap add android` / `npx cap add ios`, patches in the contacts permission
 (`READ_CONTACTS` on Android, `NSContactsUsageDescription` on iOS) — without it the contacts import
-silently returns nothing.
+silently returns nothing — and regenerates the icons.
+
+### Icons
+
+`android/` and `ios/` are generated, so the icons cannot live there. The two source drawings sit in
+`frontend/assets/source/`, and `just icons` rebuilds everything from them:
+
+| Output | What it is |
+|---|---|
+| `assets/icon.png` | 1024² on white, no transparency — iOS rejects an icon with an alpha channel |
+| `assets/icon-foreground.png` · `icon-background.png` | The Android adaptive pair. The white paper becomes the background layer and the artwork is keyed off it, so launcher masks crop white rather than clipping the drawing |
+| `assets/notification.png` | White silhouette on transparency. Android throws away a small icon's colours and redraws its alpha in `iconColor`, so anything full-colour arrives as a white blob |
+| `public/favicon.png` · `apple-touch-icon.png` | The browser build |
+
+To change the icon, replace the JPEGs in `frontend/assets/source/` and run `just icons`.
 
 ---
 
@@ -260,6 +274,7 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 | `just preview` | Serve the production build locally |
 | `just add-platforms` | Create the Android/iOS projects and patch in the contacts permission |
 | `just cap-sync` | Sync compiled assets into the native projects |
+| `just icons` | Rebuild every app and notification icon from `frontend/assets/source` |
 | `just android` | Full Android deploy: build → sync → assemble APK → install via ADB |
 | `just ios` | Build, sync and open the iOS project in Xcode |
 | `just devices` | List connected Android devices |
