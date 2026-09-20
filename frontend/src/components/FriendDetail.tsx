@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import {
-  ArrowLeftRight, CalendarCheck, Mail, MapPin, Pencil, PauseCircle, Phone, PlayCircle, Users, X,
+  ArrowLeftRight, CalendarCheck, MapPin, MessageSquare, Pencil, PauseCircle, Phone, PlayCircle, Users, X,
 } from 'lucide-react'
 import type { Friend, Initiator } from '@/types'
 import { useStore } from '@/store/useStore'
 import { humanAgo, humanDuration } from '@/lib/dates'
 import {
-  FRESHNESS_META, INITIATOR_LABEL, daysUntilDue, freshnessOf, intervalOf, lastSeen,
-  reciprocity, reciprocityHint, tagsOf, tierOf, urgency,
+  CALL_KIND, INITIATOR_LABEL, TEXT_KIND, daysUntilDue, intervalOf, kindsOf, lastSeen,
+  progressOf, reciprocity, reciprocityHint, tagsOf, tierOf,
 } from '@/lib/scoring'
 import Avatar from './Avatar'
 import SnoozeMenu from './SnoozeMenu'
@@ -22,11 +22,11 @@ interface Props {
 }
 
 export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) {
-  const { friends, tiers, tags, updateFriend, updateMeetup, deleteMeetup } = useStore()
+  const { friends, tiers, tags, kinds, logTouch, updateFriend, updateMeetup, deleteMeetup } = useStore()
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
-  const ratio    = urgency(friend, tiers)
-  const fresh    = FRESHNESS_META[freshnessOf(ratio)]
+  const tier     = tierOf(friend, tiers)
+  const progress = progressOf(friend, tiers)
   const seen     = lastSeen(friend)
   const left     = daysUntilDue(friend, tiers)
   const recip    = reciprocity(friend)
@@ -57,11 +57,11 @@ export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) 
       <div className="modal p-5" onClick={e => e.stopPropagation()}>
         {/* ── Identity ───────────────────────────────────────────────────── */}
         <div className="flex items-start gap-3 mb-4">
-          <Avatar name={friend.name} photo={friend.photo} size={52} ring={fresh.dot} />
+          <Avatar name={friend.name} size={52} />
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold truncate">{friend.name}</h2>
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-              <TierBadge tier={tierOf(friend, tiers)} interval={intervalOf(friend, tiers)} />
+              <TierBadge tier={tier} interval={intervalOf(friend, tiers)} />
               {tagsOf(friend, tags).map(t => <TagChip key={t.id} tag={t} />)}
             </div>
           </div>
@@ -70,14 +70,19 @@ export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) 
         </div>
 
         {/* ── At a glance ────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <Fact label="Last seen" value={seen ? humanAgo(seen) : 'never'} tone={fresh.text} />
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <Fact label="Last seen" value={seen ? humanAgo(seen) : 'never'} />
           <Fact
             label={left >= 0 ? 'Time left' : 'Overdue by'}
             value={humanDuration(Math.abs(left))}
-            tone={fresh.text}
           />
           <Fact label="Meetups" value={String(friend.meetups.length)} />
+        </div>
+        <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden mb-4">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${progress}%`, backgroundColor: tier?.color ?? 'var(--accent)' }}
+          />
         </div>
 
         {/* ── Reciprocity ────────────────────────────────────────────────── */}
@@ -107,8 +112,12 @@ export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) 
           <button onClick={() => onLog(friend)} className="btn-primary">
             <CalendarCheck size={15} /> I saw them
           </button>
-          {friend.phone && <a href={`tel:${friend.phone}`} className="btn-ghost"><Phone size={15} /> Call</a>}
-          {friend.email && <a href={`mailto:${friend.email}`} className="btn-ghost"><Mail size={15} /> Mail</a>}
+          <button onClick={() => logTouch(friend.id, CALL_KIND)} className="btn-ghost" title="Logs a call, dated today">
+            <Phone size={15} /> I called
+          </button>
+          <button onClick={() => logTouch(friend.id, TEXT_KIND)} className="btn-ghost" title="Logs a text, dated today">
+            <MessageSquare size={15} /> I texted
+          </button>
           <SnoozeMenu friend={friend} />
           <button onClick={() => updateFriend(friend.id, { paused: !friend.paused })} className="btn-ghost">
             {friend.paused ? <><PlayCircle size={15} /> Resume</> : <><PauseCircle size={15} /> Pause</>}
@@ -151,6 +160,11 @@ export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) 
                           {m.initiator ? INITIATOR_LABEL[m.initiator] : 'who reached out?'}
                         </button>
                       </div>
+                      {kindsOf(m, kinds).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {kindsOf(m, kinds).map(k => <TagChip key={k.id} tag={k} />)}
+                        </div>
+                      )}
                       {(m.place || co.length > 0) && (
                         <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400 flex-wrap">
                           {m.place && <span className="flex items-center gap-1"><MapPin size={10} /> {m.place}</span>}
@@ -190,10 +204,10 @@ export default function FriendDetail({ friend, onClose, onEdit, onLog }: Props) 
   )
 }
 
-function Fact({ label, value, tone = 'text-slate-100' }: { label: string; value: string; tone?: string }) {
+function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-2.5 text-center">
-      <div className={`text-sm font-medium truncate ${tone}`}>{value}</div>
+      <div className="text-sm font-medium truncate text-slate-100">{value}</div>
       <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">{label}</div>
     </div>
   )

@@ -21,8 +21,6 @@ export default function FriendModal({ friend, draft, onClose }: Props) {
   const [name, setName]         = useState(friend?.name ?? draft?.name ?? '')
   const [tierId, setTierId]     = useState(friend?.tierId ?? draft?.tierId ?? tiers[1]?.id ?? tiers[0]!.id)
   const [tagIds, setTagIds]     = useState<string[]>(friend?.tagIds ?? draft?.tagIds ?? [])
-  const [phone, setPhone]       = useState(friend?.phone ?? draft?.phone ?? '')
-  const [email, setEmail]       = useState(friend?.email ?? draft?.email ?? '')
   const [notes, setNotes]       = useState(friend?.notes ?? '')
   const [custom, setCustom]     = useState(friend?.customIntervalDays ? String(friend.customIntervalDays) : '')
   const [lastDate, setLastDate] = useState('')
@@ -49,8 +47,6 @@ export default function FriendModal({ friend, draft, onClose }: Props) {
       name: trimmed,
       tierId,
       tagIds,
-      phone: phone.trim() || undefined,
-      email: email.trim() || undefined,
       notes: notes.trim() || undefined,
       customIntervalDays: customDays,
     }
@@ -61,7 +57,6 @@ export default function FriendModal({ friend, draft, onClose }: Props) {
       // createFriend sets to today.
       createFriend({
         ...payload,
-        photo:  draft?.photo,
         source: draft?.source ?? 'manual',
         meetups: lastDate ? [{ id: Date.now(), date: lastDate }] : [],
       })
@@ -73,7 +68,7 @@ export default function FriendModal({ friend, draft, onClose }: Props) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3 mb-4">
-          <Avatar name={name || '?'} photo={friend?.photo ?? draft?.photo} size={44} />
+          <Avatar name={name || '?'} size={44} />
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold">{isNew ? 'New friend' : `Edit ${friend.name}`}</h2>
             <p className="text-xs text-slate-400">
@@ -123,17 +118,6 @@ export default function FriendModal({ friend, draft, onClose }: Props) {
             <input type="date" value={lastDate} max={today()} onChange={e => setLastDate(e.target.value)} className="input mb-3" />
           </>
         )}
-
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="label">Phone</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} className="input" />
-          </div>
-          <div>
-            <label className="label">Email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} className="input" />
-          </div>
-        </div>
 
         <label className="label">Notes</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Kids' names, what they're into, what to ask about…" className="textarea mb-4" />

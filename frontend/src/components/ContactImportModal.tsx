@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Check, Loader2, Search, UserPlus, X } from 'lucide-react'
 import type { FriendCreate, ImportedContact } from '@/types'
-import { contactsAreOsPicked, loadContacts } from '@/lib/contacts'
+import { loadContacts } from '@/lib/contacts'
 import { useStore } from '@/store/useStore'
 import Avatar from './Avatar'
 
@@ -52,12 +52,10 @@ export default function ContactImportModal({ onClose, onPicked }: Props) {
     return list.slice(0, 200)
   }, [contacts, query])
 
+  // Only the name crosses over: Orbit keeps no phone numbers or addresses.
   function pick(c: ImportedContact) {
     onPicked({
       name:   c.name,
-      phone:  c.phone,
-      email:  c.email,
-      photo:  c.photo,
       tierId: tiers[1]?.id ?? tiers[0]!.id,
       source: 'contacts',
     })
@@ -74,7 +72,7 @@ export default function ContactImportModal({ onClose, onPicked }: Props) {
         {state === 'loading' && (
           <div className="flex items-center gap-2 text-sm text-slate-400 py-8 justify-center">
             <Loader2 size={16} className="animate-spin" />
-            {contactsAreOsPicked() ? 'Waiting for the browser contact picker…' : 'Reading your address book…'}
+            Reading your address book…
           </div>
         )}
 
@@ -110,7 +108,7 @@ export default function ContactImportModal({ onClose, onPicked }: Props) {
                     onClick={() => pick(c)}
                     className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-slate-800 transition-colors text-left"
                   >
-                    <Avatar name={c.name} photo={c.photo} size={32} />
+                    <Avatar name={c.name} size={32} />
                     <div className="min-w-0 flex-1">
                       <div className="text-sm truncate">{c.name}</div>
                       {(c.phone || c.email) && (
