@@ -102,11 +102,15 @@ counts from `addedAt`.
 - Phone-first: thumb-sized targets, works at 360px wide, no hover-only affordances.
 - Changing the persisted shape means bumping `version` in the store and adding a `migrate` branch.
   Migrations must not clobber settings the user has tuned by hand.
+- Anything that has to end up inside `frontend/android/` or `frontend/ios/` needs a script that
+  re-applies it, since both folders are generated and gitignored — see `scripts/`, and `icons` and
+  `add-platforms` in the justfile.
 
 ## Commands
 
 ```bash
 just dev        # dev server on localhost:5174
+just icons      # rebuild app + notification icons from frontend/assets/source
 just build      # tsc && vite build
 just apk        # build the debug APK — no device needed
 just android    # build, sync, install on a connected device
