@@ -129,7 +129,10 @@ separate from the phone's data.
 
 **2a. Download and install [Android Studio](https://developer.android.com/studio)**
 
-> **Java:** Android Studio ships with its own JDK — do not install a separate one. An older system Java will break the Gradle build.
+> **Java:** Android Studio ships with its own JDK — do not install a separate one. `just android`
+> points Gradle at it deliberately, because the Java on a Mac's PATH is often 8, and the Android
+> Gradle Plugin needs 17+. If you ever see `No matching variant ... compatible with Java 8`, that
+> is what happened.
 
 **2b. Download the Android SDK**
 
@@ -210,6 +213,11 @@ This builds the web assets, syncs them into the Android project, compiles the AP
 > If it fails with `ERR_SDK_NOT_FOUND`, your terminal doesn't have `ANDROID_HOME` set — open a new
 > terminal window and try again (the shell setup in Step 2c only takes effect in new windows).
 
+> If the APK builds but the install is refused with `INSTALL_FAILED_USER_RESTRICTED`, the phone is
+> blocking it: turn on **Install via USB** in Developer options (Step 4) and run it again.
+
+To check the build alone, without a phone plugged in, run `just apk`.
+
 ---
 
 ## iOS
@@ -248,6 +256,7 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 | `just dev` | Install deps and start the dev server at `localhost:5174` |
 | `just install` | Install frontend npm dependencies |
 | `just build` | Build the frontend into `frontend/dist` |
+| `just apk` | Build the debug APK — same as `just android` without the install, no device needed |
 | `just preview` | Serve the production build locally |
 | `just add-platforms` | Create the Android/iOS projects and patch in the contacts permission |
 | `just cap-sync` | Sync compiled assets into the native projects |

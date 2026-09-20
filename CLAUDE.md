@@ -29,8 +29,8 @@ batch-merge at the end of a session.
 - `just build` succeeds — run it and verify, don't assume
 - The user has been told it is ready to test
 
-`just android` needs a USB device and the Android SDK, so it is not part of "complete" — run it
-only when the change touches native behaviour and a device is connected.
+`just android` needs a USB device, so it is not part of "complete". When a change touches native
+behaviour, run `just apk` instead — it exercises the whole Gradle build without a phone.
 
 ### Never
 
@@ -108,6 +108,7 @@ counts from `addedAt`.
 ```bash
 just dev        # dev server on localhost:5174
 just build      # tsc && vite build
+just apk        # build the debug APK — no device needed
 just android    # build, sync, install on a connected device
 just ios        # build, sync, open Xcode
 just devices    # list connected Android devices
