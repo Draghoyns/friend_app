@@ -11,14 +11,16 @@ import FriendsTab         from '@/components/FriendsTab'
 import TimelineTab        from '@/components/TimelineTab'
 import StatsTab           from '@/components/StatsTab'
 import Sidebar            from '@/components/Sidebar'
+import FriendDetail       from '@/components/FriendDetail'
 import FriendModal        from '@/components/FriendModal'
 import LogMeetupModal     from '@/components/LogMeetupModal'
 import ContactImportModal from '@/components/ContactImportModal'
 
 type Modal =
-  | { kind: 'friend'; friend: Friend }
-  | { kind: 'new'; draft?: Partial<FriendCreate> }
-  | { kind: 'log'; friend: Friend }
+  | { kind: 'detail'; friend: Friend }
+  | { kind: 'edit';   friend: Friend }
+  | { kind: 'new';    draft?: Partial<FriendCreate> }
+  | { kind: 'log';    friend?: Friend }
   | { kind: 'import' }
   | null
 
@@ -33,14 +35,15 @@ export default function App() {
 
   // The open friend must track the store, otherwise logging a meetup from
   // inside the editor leaves a stale copy on screen.
-  const openFriend = modal && 'friend' in modal
-    ? friends.find(f => f.id === modal.friend.id) ?? null
+  const openFriend = modal && 'friend' in modal && modal.friend
+    ? friends.find(f => f.id === modal.friend!.id) ?? null
     : null
 
   const ui = {
-    openFriend: (f: Friend) => setModal({ kind: 'friend', friend: f }),
+    openFriend: (f: Friend) => setModal({ kind: 'detail', friend: f }),
+    openEdit:   (f: Friend) => setModal({ kind: 'edit',   friend: f }),
     openNew:    (draft?: Partial<FriendCreate>) => setModal({ kind: 'new', draft }),
-    openLog:    (f: Friend) => setModal({ kind: 'log', friend: f }),
+    openLog:    (f?: Friend) => setModal({ kind: 'log', friend: f }),
     openImport: () => setModal({ kind: 'import' }),
   }
 
@@ -113,14 +116,22 @@ export default function App() {
 
         {sidebarOpen && <Sidebar />}
 
-        {modal?.kind === 'friend' && openFriend && (
-          <FriendModal friend={openFriend} onClose={() => setModal(null)} onLog={ui.openLog} />
+        {modal?.kind === 'detail' && openFriend && (
+          <FriendDetail
+            friend={openFriend}
+            onClose={() => setModal(null)}
+            onEdit={ui.openEdit}
+            onLog={ui.openLog}
+          />
+        )}
+        {modal?.kind === 'edit' && openFriend && (
+          <FriendModal friend={openFriend} onClose={() => setModal(null)} />
         )}
         {modal?.kind === 'new' && (
-          <FriendModal draft={modal.draft} onClose={() => setModal(null)} onLog={ui.openLog} />
+          <FriendModal draft={modal.draft} onClose={() => setModal(null)} />
         )}
-        {modal?.kind === 'log' && openFriend && (
-          <LogMeetupModal friend={openFriend} onClose={() => setModal(null)} />
+        {modal?.kind === 'log' && (
+          <LogMeetupModal friend={openFriend ?? undefined} onClose={() => setModal(null)} />
         )}
         {modal?.kind === 'import' && (
           <ContactImportModal

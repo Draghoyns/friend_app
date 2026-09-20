@@ -1,20 +1,22 @@
 import { CalendarCheck, Clock, MoonStar, PauseCircle } from 'lucide-react'
-import type { Friend, Tier } from '@/types'
+import type { Friend, Tag, Tier } from '@/types'
 import { humanAgo, humanDuration } from '@/lib/dates'
 import {
-  FRESHNESS_META, daysSinceSeen, daysUntilDue, freshnessOf, intervalOf, lastSeen, tierOf, urgency,
+  FRESHNESS_META, daysSinceSeen, daysUntilDue, freshnessOf, intervalOf, lastSeen, tagsOf, tierOf, urgency,
 } from '@/lib/scoring'
 import Avatar from './Avatar'
+import TagChip from './TagChip'
 import TierBadge from './TierBadge'
 
 interface Props {
   friend:  Friend
   tiers:   Tier[]
+  tags:    Tag[]
   onOpen:  (f: Friend) => void
   onLog:   (f: Friend) => void
 }
 
-export default function FriendCard({ friend, tiers, onOpen, onLog }: Props) {
+export default function FriendCard({ friend, tiers, tags, onOpen, onLog }: Props) {
   const ratio    = urgency(friend, tiers)
   const fresh    = FRESHNESS_META[freshnessOf(ratio)]
   const interval = intervalOf(friend, tiers)
@@ -35,6 +37,7 @@ export default function FriendCard({ friend, tiers, onOpen, onLog }: Props) {
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <TierBadge tier={tierOf(friend, tiers)} />
+            {tagsOf(friend, tags).slice(0, 2).map(t => <TagChip key={t.id} tag={t} />)}
             <span className={`text-[11px] ${fresh.text}`}>
               {seen ? `seen ${humanAgo(seen)}` : `never seen · added ${humanAgo(friend.addedAt)}`}
             </span>

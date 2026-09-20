@@ -1,5 +1,8 @@
-import type { Friend, Tier, Freshness } from '@/types'
+import type { Friend, Initiator, MeetupEntry, Tag, Tier, Freshness } from '@/types'
 import { daysBetween, today } from './dates'
+
+/** Shared swatches for accents, tiers and tags. */
+export const PALETTE = ['#38bdf8', '#ec4899', '#a78bfa', '#34d399', '#f59e0b', '#f43f5e', '#22d3ee', '#fb923c']
 
 export const DEFAULT_TIERS: Tier[] = [
   { id: 'inner',        name: 'Inner circle',   intervalDays:  14, color: '#f43f5e', builtin: true },
@@ -71,6 +74,64 @@ export function ranked(friends: Friend[], tiers: Tier[]): Friend[] {
   return friends
     .filter(isEligible)
     .sort((a, b) => urgency(b, tiers) - urgency(a, tiers))
+}
+
+export function tagsOf(friend: Friend, tags: Tag[]): Tag[] {
+  return friend.tagIds.map(id => tags.find(t => t.id === id)).filter((t): t is Tag => !!t)
+}
+
+export interface Reciprocity {
+  me:     number
+  them:   number
+  mutual: number
+  /** Meetups with a recorded initiator. */
+  known:  number
+  /** Share of known meetups you started, 0–1. Null when nothing is recorded. */
+  share:  number | null
+}
+
+/** Who has been doing the reaching out. */
+export function reciprocity(friend: Friend): Reciprocity {
+  const count = (k: Initiator) => friend.meetups.filter(m => m.initiator === k).length
+  const me = count('me'), them = count('them'), mutual = count('mutual')
+  const known = me + them + mutual
+  return { me, them, mutual, known, share: known ? me / known : null }
+}
+
+/** Plain-English read on a reciprocity balance, or null when it's even or unknown. */
+export function reciprocityHint(r: Reciprocity, name: string): string | null {
+  if (r.share === null || r.known < 3) return null
+  if (r.share >= 0.8)  return `You start almost every meetup with ${name}.`
+  if (r.share >= 0.65) return `You usually reach out first.`
+  if (r.share <= 0.2)  return `${name} does almost all the reaching out.`
+  if (r.share <= 0.35) return `${name} usually reaches out first.`
+  return null
+}
+
+export const INITIATOR_LABEL: Record<Initiator, string> = {
+  me:     'I reached out',
+  them:   'They reached out',
+  mutual: 'Mutual',
+}
+
+/**
+ * Collapse every friend's meetups into shared entries: one per evening, with
+ * everyone who was there. Copies of a group meetup share a groupId.
+ */
+export function meetupEntries(friends: Friend[]): MeetupEntry[] {
+  const groups = new Map<string, MeetupEntry>()
+  const solo: MeetupEntry[] = []
+
+  for (const friend of friends) {
+    for (const meetup of friend.meetups) {
+      if (!meetup.groupId) { solo.push({ meetup, friends: [friend] }); continue }
+      const entry = groups.get(meetup.groupId)
+      if (entry) entry.friends.push(friend)
+      else groups.set(meetup.groupId, { meetup, friends: [friend] })
+    }
+  }
+
+  return [...groups.values(), ...solo].sort((a, b) => (a.meetup.date < b.meetup.date ? 1 : -1))
 }
 
 export function initials(name: string): string {

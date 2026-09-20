@@ -21,28 +21,39 @@ outranks an acquaintance you last saw in spring.
 - The next eight below, ranked the same way
 - Tells you plainly when nobody is overdue
 
+### Friend detail
+- Tap anyone to open their sheet: name, photo, friendship level, circles
+- **At a glance** — last seen · time left (or overdue by) · total meetups
+- **Who reaches out** — a bar showing how the initiative splits between you two
+- **Actions** — I saw them · Call · Mail · Snooze · Pause · Edit
+- **Entry log** — every meetup concerning that friend, with date, place, note, who was also there, and who made it happen (tap the badge to set or change it)
+
 ### Friends
 - **Friendship levels** — Inner circle (2 weeks) · Close friend (1 month) · Good friend (2.5 months) · Friendly (5 months) · Acquaintance (1 year)
 - **Custom rhythm** — override the level for one person ("see Marc every 45 days")
 - **Freshness** — each friend is Fresh · Soon · Due · Overdue, with a progress bar toward their next meetup
+- **Circles** — free-form tags (work, climbing, school) on top of the levels; filter by several at once
 - **Search** by name or notes; press `/` to focus
-- **Filter** by friendship level; sort by most overdue, A → Z, or seen recently
-- **Snooze** a friend for two weeks, or **pause** them indefinitely without deleting them
+- **Filter** by friendship level and circle; sort by most overdue, A → Z, or seen recently
+- **Snooze** — 3 days, a week, 2 weeks, a month, 3 months, or until a date you pick; **pause** a friend indefinitely without deleting them
 - **Notes** per friend — kids' names, what they're into, what to ask about next time
 
 ### Meetups
 - Log a meetup with a **date**, an optional **place** and a **note**
-- Logging one resets that friend's clock and clears any snooze
-- Full **history** per friend, deletable entry by entry
+- **Group meetups** — pick several friends and log the evening once; everyone present gets it, and editing or deleting it applies to the whole group
+- **Who reached out** — mark each meetup as yours, theirs or mutual
+- Logging resets the clock for everyone present, and clears any snooze
 
 ### Timeline
 - Every meetup you ever logged, newest first, grouped by month
+- A group evening appears once, with stacked avatars and everyone's name
 
 ### Stats
 - Period picker — **Month**, **Quarter**, **Year**
 - Friends in orbit · meetups logged · **on-track percentage**
 - Breakdown of who needs you (Fresh / Soon / Due / Overdue)
-- On-track count per friendship level
+- **Who reaches out** — your overall initiative split, and the friends where you do 75%+ of it
+- On-track count per friendship level and per circle
 - Who you saw the most in the period
 
 ### Import from contacts
@@ -52,6 +63,7 @@ outranks an acquaintance you last saw in spring.
 
 ### Sidebar
 - **Friendship levels** — rename, re-time and recolor them; add your own; delete a custom one (its friends move to another level)
+- **Circles** — create, rename, recolor and delete them
 - **Weekly nudge** — a local notification on a chosen weekday and time, listing who is overdue
 - **Appearance** — dark / light theme, six accent presets plus a color wheel
 - **Data** — export the whole orbit as JSON, import it back; show/hide paused friends
@@ -234,14 +246,15 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 ## Todo / Ideas
 
 ### Suggestions
-- [ ] Group hangouts — log one meetup against several friends at once
 - [ ] "Who can I see tonight?" — filter suggestions by who lives nearby
-- [ ] Reciprocity — track who reached out first, flag friendships you always initiate
+- [x] Group meetups — log one evening against several friends at once
+- [x] Reciprocity — track who reached out first, flag friendships you always initiate
 
 ### Friends
 - [ ] Birthdays, with their own reminder independent of the meetup rhythm
-- [ ] Circles / tags (work, climbing, school) on top of friendship levels
 - [ ] Seasonal rhythms — someone you only see in summer shouldn't nag you in January
+- [x] Circles / tags (work, climbing, school) on top of friendship levels
+- [x] Snooze durations — 3 days to 3 months, or a specific date
 
 ### Data
 - [ ] Two-way contact sync — keep names and photos fresh when the address book changes

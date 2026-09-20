@@ -4,14 +4,16 @@ import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
 import { humanAgo, humanDuration } from '@/lib/dates'
 import {
-  FRESHNESS_META, daysUntilDue, freshnessOf, lastSeen, ranked, tierOf, urgency,
+  FRESHNESS_META, daysUntilDue, freshnessOf, lastSeen, ranked, tagsOf, tierOf, urgency,
 } from '@/lib/scoring'
 import Avatar from './Avatar'
 import FriendCard from './FriendCard'
+import SnoozeMenu from './SnoozeMenu'
+import TagChip from './TagChip'
 import TierBadge from './TierBadge'
 
 export default function OrbitTab() {
-  const { friends, tiers, snooze } = useStore()
+  const { friends, tiers, tags } = useStore()
   const ui = useUi()
 
   const order = useMemo(() => ranked(friends, tiers), [friends, tiers])
@@ -61,8 +63,9 @@ export default function OrbitTab() {
           <Avatar name={top.name} photo={top.photo} size={84} ring={fresh.dot} />
           <div>
             <h2 className="text-xl font-semibold">{top.name}</h2>
-            <div className="flex items-center justify-center gap-2 mt-1.5">
+            <div className="flex items-center justify-center gap-1.5 mt-1.5 flex-wrap">
               <TierBadge tier={tierOf(top, tiers)} />
+              {tagsOf(top, tags).map(t => <TagChip key={t.id} tag={t} />)}
             </div>
           </div>
         </button>
@@ -84,9 +87,7 @@ export default function OrbitTab() {
           {top.phone && (
             <a href={`tel:${top.phone}`} className="btn-ghost"><Phone size={15} /> Call</a>
           )}
-          <button onClick={() => snooze(top.id, 14)} className="btn-ghost">
-            <MoonStar size={15} /> Not now
-          </button>
+          <SnoozeMenu friend={top} />
         </div>
 
         {onSchedule && (
@@ -98,10 +99,15 @@ export default function OrbitTab() {
 
       {rest.length > 0 && (
         <section>
-          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2 px-1">Then</h3>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h3 className="text-[11px] uppercase tracking-wider text-slate-500">Then</h3>
+            <button onClick={() => ui.openLog()} className="btn-ghost !py-0.5 !px-2 !text-[11px]">
+              <Users size={12} /> Log a group meetup
+            </button>
+          </div>
           <div className="space-y-2">
             {rest.slice(0, 8).map(f => (
-              <FriendCard key={f.id} friend={f} tiers={tiers} onOpen={ui.openFriend} onLog={ui.openLog} />
+              <FriendCard key={f.id} friend={f} tiers={tiers} tags={tags} onOpen={ui.openFriend} onLog={ui.openLog} />
             ))}
           </div>
         </section>

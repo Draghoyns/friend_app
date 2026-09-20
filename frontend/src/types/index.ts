@@ -9,18 +9,32 @@ export interface Tier {
   builtin?:     boolean
 }
 
+/** A free-form circle a friend belongs to — work, climbing, school… */
+export interface Tag {
+  id:    string
+  name:  string
+  color: string
+}
+
+/** Who made this meetup happen. */
+export type Initiator = 'me' | 'them' | 'mutual'
+
 export interface Meetup {
   id:      number
   /** YYYY-MM-DD, local. */
   date:    string
   place?:  string
   note?:   string
+  initiator?: Initiator
+  /** Shared by every copy of a meetup that involved several friends. */
+  groupId?: string
 }
 
 export interface Friend {
   id:        number
   name:      string
   tierId:    string
+  tagIds:    string[]
   /** Per-friend override of the tier interval, in days. */
   customIntervalDays?: number | null
   phone?:    string
@@ -39,11 +53,17 @@ export interface Friend {
   source:    'manual' | 'contacts'
 }
 
-export type FriendCreate = Omit<Friend, 'id' | 'addedAt' | 'meetups'> &
-  Partial<Pick<Friend, 'addedAt' | 'meetups'>>
+export type FriendCreate = Omit<Friend, 'id' | 'addedAt' | 'meetups' | 'tagIds'> &
+  Partial<Pick<Friend, 'addedAt' | 'meetups' | 'tagIds'>>
 export type FriendUpdate = Partial<Omit<Friend, 'id'>>
 
-export type MeetupCreate = Omit<Meetup, 'id'>
+export type MeetupCreate = Omit<Meetup, 'id' | 'groupId'>
+
+/** One logged meetup, resolved back to everyone who was there. */
+export interface MeetupEntry {
+  meetup:  Meetup
+  friends: Friend[]
+}
 
 /** A contact as returned by the OS contact picker. */
 export interface ImportedContact {

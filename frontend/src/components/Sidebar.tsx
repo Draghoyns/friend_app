@@ -6,7 +6,9 @@ import { useStore } from '@/store/useStore'
 import { humanDuration } from '@/lib/dates'
 import { useNotificationPermission, cancelWeeklyNudge, scheduleWeeklyNudge } from '@/hooks/useLocalNotifications'
 
-const ACCENTS = ['#38bdf8', '#ec4899', '#a78bfa', '#34d399', '#f59e0b', '#f43f5e']
+import { PALETTE } from '@/lib/scoring'
+
+const ACCENTS = PALETTE.slice(0, 6)
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function Sidebar() {
@@ -16,6 +18,8 @@ export default function Sidebar() {
   const [editingTier, setEditingTier] = useState<string | null>(null)
   const [newTierName, setNewTierName] = useState('')
   const [newTierDays, setNewTierDays] = useState('')
+  const [editingTag, setEditingTag]   = useState<string | null>(null)
+  const [newTagName, setNewTagName]   = useState('')
   const [message, setMessage] = useState('')
 
   async function toggleNotifications() {
@@ -138,6 +142,74 @@ export default function Sidebar() {
               placeholder="days" className="input !py-1 !text-xs !w-20"
             />
             <button onClick={addTier} className="btn-ghost !p-1.5"><Plus size={15} /></button>
+          </div>
+        </section>
+
+        {/* ── Circles ───────────────────────────────────────────────────── */}
+        <section>
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">Circles</h3>
+          <div className="space-y-1.5">
+            {s.tags.map(t => {
+              const count = s.friends.filter(f => f.tagIds.includes(t.id)).length
+              return editingTag === t.id ? (
+                <div key={t.id} className="bg-slate-800 rounded-lg p-2 space-y-2">
+                  <input
+                    value={t.name}
+                    onChange={e => s.updateTag(t.id, { name: e.target.value })}
+                    className="input !py-1 !text-xs"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    {PALETTE.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => s.updateTag(t.id, { color: c })}
+                        className="w-5 h-5 rounded-full border border-slate-600"
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                    <button onClick={() => setEditingTag(null)} className="btn-ghost !p-1 ml-auto">
+                      <Check size={14} />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { s.deleteTag(t.id); setEditingTag(null) }}
+                    className="text-[11px] text-rose-400 flex items-center gap-1"
+                  >
+                    <Trash2 size={11} /> Delete circle (removed from {count} friends)
+                  </button>
+                </div>
+              ) : (
+                <button
+                  key={t.id}
+                  onClick={() => setEditingTag(t.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                  <span className="text-sm flex-1 truncate">{t.name}</span>
+                  <span className="text-[11px] text-slate-600 w-5 text-right">{count}</span>
+                </button>
+              )
+            })}
+            {!s.tags.length && (
+              <p className="text-[11px] text-slate-500 px-2">
+                Group friends by context — work, climbing, school.
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-2">
+            <input
+              value={newTagName}
+              onChange={e => setNewTagName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { s.createTag(newTagName); setNewTagName('') } }}
+              placeholder="New circle"
+              className="input !py-1 !text-xs"
+            />
+            <button
+              onClick={() => { s.createTag(newTagName); setNewTagName('') }}
+              className="btn-ghost !p-1.5"
+            >
+              <Plus size={15} />
+            </button>
           </div>
         </section>
 

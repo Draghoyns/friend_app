@@ -1,25 +1,26 @@
 import { useEffect, useState } from 'react'
-import { CalendarCheck, MapPin, MoonStar, PauseCircle, PlayCircle, Trash2, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import type { Friend, FriendCreate } from '@/types'
 import { useStore } from '@/store/useStore'
-import { humanAgo, humanDuration, today } from '@/lib/dates'
-import { FRESHNESS_META, daysUntilDue, freshnessOf, intervalOf, lastSeen, urgency } from '@/lib/scoring'
+import { humanDuration, today } from '@/lib/dates'
 import Avatar from './Avatar'
+import TagPicker from './TagPicker'
 
 interface Props {
   /** Existing friend to edit, or a prefilled draft for a new one. */
   friend?: Friend
   draft?:  Partial<FriendCreate>
   onClose: () => void
-  onLog:   (f: Friend) => void
 }
 
-export default function FriendModal({ friend, draft, onClose, onLog }: Props) {
-  const { tiers, createFriend, updateFriend, deleteFriend, snooze, unsnooze, deleteMeetup } = useStore()
+/** The edit form. Reading a friend happens in FriendDetail. */
+export default function FriendModal({ friend, draft, onClose }: Props) {
+  const { tiers, createFriend, updateFriend, deleteFriend } = useStore()
   const isNew = !friend
 
   const [name, setName]         = useState(friend?.name ?? draft?.name ?? '')
   const [tierId, setTierId]     = useState(friend?.tierId ?? draft?.tierId ?? tiers[1]?.id ?? tiers[0]!.id)
+  const [tagIds, setTagIds]     = useState<string[]>(friend?.tagIds ?? draft?.tagIds ?? [])
   const [phone, setPhone]       = useState(friend?.phone ?? draft?.phone ?? '')
   const [email, setEmail]       = useState(friend?.email ?? draft?.email ?? '')
   const [notes, setNotes]       = useState(friend?.notes ?? '')
@@ -37,12 +38,17 @@ export default function FriendModal({ friend, draft, onClose, onLog }: Props) {
   const customDays = custom.trim() ? Math.max(1, parseInt(custom, 10) || 0) : null
   const effective  = customDays ?? tier?.intervalDays ?? 90
 
+  function toggleTag(tagId: string) {
+    setTagIds(ids => (ids.includes(tagId) ? ids.filter(i => i !== tagId) : [...ids, tagId]))
+  }
+
   function save() {
     const trimmed = name.trim()
     if (!trimmed) return
     const payload = {
       name: trimmed,
       tierId,
+      tagIds,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -63,25 +69,16 @@ export default function FriendModal({ friend, draft, onClose, onLog }: Props) {
     onClose()
   }
 
-  const ratio = friend ? urgency(friend, tiers) : 0
-  const fresh = FRESHNESS_META[freshnessOf(ratio)]
-  const seen  = friend ? lastSeen(friend) : null
-
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3 mb-4">
-          <Avatar name={name || '?'} photo={friend?.photo ?? draft?.photo} size={44} ring={friend ? fresh.dot : undefined} />
+          <Avatar name={name || '?'} photo={friend?.photo ?? draft?.photo} size={44} />
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold">{isNew ? 'New friend' : name}</h2>
-            {friend && (
-              <p className={`text-xs ${fresh.text}`}>
-                {seen ? `Last seen ${humanAgo(seen)}` : 'Never seen'} ·{' '}
-                {daysUntilDue(friend, tiers) >= 0
-                  ? `${humanDuration(daysUntilDue(friend, tiers))} left`
-                  : `${humanDuration(-daysUntilDue(friend, tiers))} overdue`}
-              </p>
-            )}
+            <h2 className="font-semibold">{isNew ? 'New friend' : `Edit ${friend.name}`}</h2>
+            <p className="text-xs text-slate-400">
+              {isNew ? 'How close are you, and how often do you want to see them?' : 'Name, level, circles and notes.'}
+            </p>
           </div>
           <button onClick={onClose} className="btn-ghost !p-1.5"><X size={18} /></button>
         </div>
@@ -107,6 +104,9 @@ export default function FriendModal({ friend, draft, onClose, onLog }: Props) {
             </button>
           ))}
         </div>
+
+        <label className="label">Circles</label>
+        <div className="mb-3"><TagPicker selected={tagIds} onToggle={toggleTag} /></div>
 
         <label className="label">
           Custom rhythm <span className="text-slate-600">(days — overrides the level)</span>
@@ -137,62 +137,6 @@ export default function FriendModal({ friend, draft, onClose, onLog }: Props) {
 
         <label className="label">Notes</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Kids' names, what they're into, what to ask about…" className="textarea mb-4" />
-
-        {friend && (
-          <>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <button onClick={() => onLog(friend)} className="btn-primary">
-                <CalendarCheck size={15} /> Log meetup
-              </button>
-              {friend.snoozedUntil && friend.snoozedUntil > today() ? (
-                <button onClick={() => unsnooze(friend.id)} className="btn-ghost">
-                  <MoonStar size={15} /> Snoozed until {friend.snoozedUntil}
-                </button>
-              ) : (
-                <button onClick={() => snooze(friend.id, 14)} className="btn-ghost">
-                  <MoonStar size={15} /> Snooze 2 weeks
-                </button>
-              )}
-              <button
-                onClick={() => updateFriend(friend.id, { paused: !friend.paused })}
-                className="btn-ghost"
-              >
-                {friend.paused ? <><PlayCircle size={15} /> Resume</> : <><PauseCircle size={15} /> Pause</>}
-              </button>
-            </div>
-
-            {friend.meetups.length > 0 && (
-              <div className="mb-4">
-                <label className="label">History · {friend.meetups.length} meetups</label>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {friend.meetups.map(m => (
-                    <div key={m.id} className="flex items-start gap-2 text-xs bg-slate-800 rounded-lg px-2.5 py-1.5">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{m.date}</span>
-                          <span className="text-slate-500">{humanAgo(m.date)}</span>
-                          {m.place && (
-                            <span className="text-slate-400 flex items-center gap-0.5 truncate">
-                              <MapPin size={10} /> {m.place}
-                            </span>
-                          )}
-                        </div>
-                        {m.note && <p className="text-slate-400 mt-0.5 whitespace-pre-wrap">{m.note}</p>}
-                      </div>
-                      <button
-                        onClick={() => deleteMeetup(friend.id, m.id)}
-                        className="text-slate-600 hover:text-rose-400 transition-colors shrink-0"
-                        title="Delete this meetup"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
 
         <div className="flex items-center justify-between gap-2">
           {friend ? (
