@@ -8,6 +8,9 @@ export type ContactsResult =
 /** True only where the address book can actually be read — the phone build. */
 export const contactsAvailable = () => Capacitor.isNativePlatform()
 
+const DENIED_MESSAGE =
+  'Orbit needs permission to read your contacts. Turn Contacts on for Orbit in your phone settings, or add the friend by hand.'
+
 /**
  * Read the address book, whole, so the import modal can search it locally.
  *
@@ -27,7 +30,7 @@ export async function loadContacts(): Promise<ContactsResult> {
     const { Contacts } = await import('@capacitor-community/contacts')
     const perm = await Contacts.requestPermissions()
     if (perm.contacts !== 'granted') {
-      return { ok: false, reason: 'denied', message: 'Orbit needs contacts permission to import friends.' }
+      return { ok: false, reason: 'denied', message: DENIED_MESSAGE }
     }
     const { contacts } = await Contacts.getContacts({
       projection: { name: true, phones: true, emails: true },
@@ -43,6 +46,10 @@ export async function loadContacts(): Promise<ContactsResult> {
       .sort((a, b) => a.name.localeCompare(b.name))
     return { ok: true, contacts: mapped }
   } catch (e) {
-    return { ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }
+    // A refused prompt surfaces as a rejected call rather than a 'denied' state,
+    // so say the same thing instead of showing the native error verbatim.
+    const raw = e instanceof Error ? e.message : String(e)
+    if (/permission/i.test(raw)) return { ok: false, reason: 'denied', message: DENIED_MESSAGE }
+    return { ok: false, reason: 'error', message: `Your address book could not be read. ${raw}` }
   }
 }
