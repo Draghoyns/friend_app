@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore'
 import { UiContext } from '@/lib/ui'
 import type { Friend, FriendCreate } from '@/types'
 import { scheduleWeeklyNudge } from '@/hooks/useLocalNotifications'
+import { confirmBundle } from '@/hooks/useLiveUpdate'
 import Header             from '@/components/layout/Header'
 import OrbitTab           from '@/components/OrbitTab'
 import FriendsTab         from '@/components/FriendsTab'
@@ -56,6 +57,10 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--accent', accentColor)
   }, [accentColor])
+
+  // A bundle pulled over WiFi is on probation until the app says it booted;
+  // without this the plugin rolls back to the previous one.
+  useEffect(() => { confirmBundle() }, [])
 
   // Re-arm the weekly nudge whenever the app comes to the foreground, so its
   // body always lists the friends who are actually overdue right now.
