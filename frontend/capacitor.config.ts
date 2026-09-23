@@ -5,6 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Orbit',
   webDir:  'dist',
   plugins: {
+    LiveUpdate: {
+      // Only used by the dev-only WiFi sync (sidebar → Update over WiFi).
+      // Old bundles are swept up once a new one has booted successfully.
+      autoDeleteBundles: true,
+    },
     LocalNotifications: {
       // Must be the white-on-transparent silhouette, not the launcher icon:
       // Android discards the colours and redraws the alpha in `iconColor`, so a
