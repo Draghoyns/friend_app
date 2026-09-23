@@ -38,6 +38,11 @@ icons:
     cd frontend && npx capacitor-assets generate --android --ios
     node scripts/install-notification-icon.mjs
 
+# Build, then serve the app to the phone over WiFi (sidebar -> Update over WiFi)
+sync:
+    cd frontend && npm run build
+    node scripts/sync-server.mjs
+
 # Sync compiled assets into the native projects (after a build)
 cap-sync:
     cd frontend && npx cap sync
