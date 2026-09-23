@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import {
   BatteryLow, CalendarCheck, MessageSquare, MoonStar, PartyPopper, Phone, UserPlus, Users,
 } from 'lucide-react'
+import type { Friend } from '@/types'
 import { useStore } from '@/store/useStore'
 import { useUi } from '@/lib/ui'
 import { contactsAvailable } from '@/lib/contacts'
 import { humanAgo, humanDuration } from '@/lib/dates'
 import {
-  CALL_KIND, TEXT_KIND, daysUntilDue, isOverdue, lastSeen, progressOf, ranked, tagsOf, tierOf, urgency,
+  CALL_KIND, TEXT_KIND, daysUntilDue, isOverdue, lastSeen, progressOf, ranked, tagsOf, tierOf,
 } from '@/lib/scoring'
 import Avatar from './Avatar'
 import FriendCard from './FriendCard'
@@ -21,11 +22,32 @@ export default function OrbitTab() {
   const [tiredCount, setTiredCount] = useState<number | null>(null)
 
   const order = useMemo(() => ranked(friends, tiers), [friends, tiers])
-  const [top, ...rest] = order
+  // `ranked` sorts by urgency, so everyone past their interval sits at the front.
+  const due = useMemo(() => order.filter(f => isOverdue(f, tiers)), [order, tiers])
   const overdue = useMemo(
     () => friends.filter(f => !f.paused && isOverdue(f, tiers)).length,
     [friends, tiers],
   )
+
+  /** The queue below the hero card — the same list whether or not anyone is due. */
+  function upcoming(list: Friend[], heading = 'Coming up') {
+    if (!list.length) return null
+    return (
+      <section>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500">{heading}</h3>
+          <button onClick={() => ui.openLog()} className="btn-ghost !py-0.5 !px-2 !text-[11px]">
+            <Users size={12} /> Log a meetup with several
+          </button>
+        </div>
+        <div className="space-y-2">
+          {list.slice(0, 8).map(f => (
+            <FriendCard key={f.id} friend={f} tiers={tiers} tags={tags} onOpen={ui.openFriend} onLog={ui.openLog} />
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   if (!friends.length) {
     return (
@@ -48,7 +70,7 @@ export default function OrbitTab() {
     )
   }
 
-  if (!top) {
+  if (!order.length) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
         <MoonStar size={34} className="text-slate-600" />
@@ -58,19 +80,38 @@ export default function OrbitTab() {
     )
   }
 
-  const ratio    = urgency(top, tiers)
+  // Nothing due: Orbit says so rather than pushing the least-fresh friend at
+  // you. The soonest friend by urgency is not always the soonest by the clock,
+  // so the countdown takes the minimum.
+  if (!due.length) {
+    const soonest = order.reduce((min, f) => Math.min(min, daysUntilDue(f, tiers)), Infinity)
+    return (
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
+        <section className="card p-6 text-center">
+          <PartyPopper size={30} className="mx-auto text-emerald-400" />
+          <h2 className="font-semibold mt-3">No hangout due</h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Everyone is inside their rhythm.
+            {soonest === 1 ? ' The next one comes due tomorrow.' : ` The next one comes due in ${humanDuration(soonest)}.`}
+          </p>
+        </section>
+
+        {upcoming(order)}
+      </div>
+    )
+  }
+
+  // `due` is a prefix of `order`, so the most overdue friend is order[0].
+  const [top, ...rest] = order
   const tier     = tierOf(top, tiers)
   const progress = progressOf(top, tiers)
   const seen     = lastSeen(top)
   const left     = daysUntilDue(top, tiers)
-  const onSchedule = ratio < 0.9
 
   return (
     <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
       <section className="card p-5 text-center">
-        <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-4">
-          {onSchedule ? 'Everyone is up to date — next up' : 'See this person next'}
-        </p>
+        <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-4">See this person next</p>
 
         <button onClick={() => ui.openFriend(top)} className="inline-flex flex-col items-center gap-3">
           <Avatar name={top.name} size={84} />
@@ -111,12 +152,6 @@ export default function OrbitTab() {
           </button>
           <SnoozeMenu friend={top} />
         </div>
-
-        {onSchedule && (
-          <p className="mt-4 text-[11px] text-emerald-400 flex items-center justify-center gap-1">
-            <PartyPopper size={12} /> Nobody is overdue. Nice.
-          </p>
-        )}
       </section>
 
       {overdue > 0 && (
@@ -146,21 +181,7 @@ export default function OrbitTab() {
         </section>
       )}
 
-      {rest.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <h3 className="text-[11px] uppercase tracking-wider text-slate-500">Then</h3>
-            <button onClick={() => ui.openLog()} className="btn-ghost !py-0.5 !px-2 !text-[11px]">
-              <Users size={12} /> Log a meetup with several
-            </button>
-          </div>
-          <div className="space-y-2">
-            {rest.slice(0, 8).map(f => (
-              <FriendCard key={f.id} friend={f} tiers={tiers} tags={tags} onOpen={ui.openFriend} onLog={ui.openLog} />
-            ))}
-          </div>
-        </section>
-      )}
+      {upcoming(rest, 'Then')}
     </div>
   )
 }
