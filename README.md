@@ -81,6 +81,7 @@ outranks an acquaintance you last saw in spring.
 - **Weekly nudge** — a local notification on a chosen weekday and time, listing who is overdue
 - **Appearance** — dark / light theme, six accent presets plus a color wheel
 - **Data** — export the whole orbit as JSON, import it back; show/hide paused friends
+- **Update over WiFi** — pull a new build off your Mac without a cable (see [Update over WiFi](#update-over-wifi))
 
 ---
 
@@ -92,7 +93,8 @@ outranks an acquaintance you last saw in spring.
 | Native wrapper | Capacitor | Wraps the compiled site into an Android/iOS app and provides contacts + notifications |
 
 There is no backend. State lives in the device's local storage via Zustand `persist`, and the app
-makes no network calls.
+makes no network calls — the one exception is the dev-only WiFi sync below, which talks to your own
+Mac to fetch a new build and never leaves the LAN.
 
 ### The ranking
 
@@ -251,6 +253,41 @@ In Xcode:
 
 ---
 
+## Update over WiFi
+
+Once the app is on the phone, new builds can be pushed over WiFi instead of USB.
+
+```bash
+just sync      # builds, then serves frontend/dist on port 8787
+```
+
+Then, on the phone: **sidebar → Update over WiFi → Sync now**. There is no address to type.
+
+### How it finds your Mac
+
+The phone cannot ask where your Mac is, so the build tells it. Every `npm run build` stamps the
+Mac's own LAN addresses into the bundle it produces (`__SYNC_HOSTS__` in `vite.config.ts`), and the
+app that ends up installed already knows where it came from. If that address has since moved — a new
+DHCP lease, a different network — the app sweeps the same `/24` subnet, 64 hosts at a time, and
+remembers whichever one answered. The usual case is a single request; a full sweep takes a few
+seconds.
+
+It falls back to USB in one case: if your Mac moved to a *different* subnet since the last build the
+phone received, there is nothing left to sweep. One `just android` re-stamps it.
+
+### Requirements
+
+- Both devices on the same WiFi
+- The `@capawesome/capacitor-live-update` plugin must be in the installed APK, which means one USB
+  install (`just android`) after adding it. Everything after that can go over WiFi.
+- The transfer is plain HTTP on the LAN, so `scripts/patch-permissions.sh` opts the native projects
+  into cleartext traffic. It runs as part of `just add-platforms`.
+
+Sync is a development convenience. A build installed over WiFi replaces the web assets only — native
+changes (permissions, icons, plugins) still need `just android`.
+
+---
+
 ## Using the app
 
 - Open the app on your phone — it works offline, no Wi-Fi or Mac needed
@@ -277,6 +314,7 @@ are defined in the `justfile` at the repo root — run `just <recipe>` from anyw
 | `just icons` | Rebuild every app and notification icon from `frontend/assets/source` |
 | `just android` | Full Android deploy: build → sync → assemble APK → install via ADB |
 | `just ios` | Build, sync and open the iOS project in Xcode |
+| `just sync` | Build, then serve the app to your phone over WiFi on port 8787 |
 | `just devices` | List connected Android devices |
 
 ---

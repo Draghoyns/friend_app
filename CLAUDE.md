@@ -54,6 +54,10 @@ behaviour, run `just apk` instead — it exercises the whole Gradle build withou
 actions like "I called" log inside the app rather than opening a dialler or mail client. Keep it
 that way.
 
+The one exception is the dev-only WiFi sync (`just sync` + sidebar → Update over WiFi), which pulls
+a new build from the laptop that produced it. It never leaves the LAN, carries no user data, and is
+not a feature of the app — do not grow it into one.
+
 ## Layout — `frontend/src/`
 
 | Path | Purpose |
@@ -66,6 +70,8 @@ that way.
 | `lib/contacts.ts` | Address-book import; **phone build only** |
 | `lib/ui.tsx` | `UiContext` — how tabs open modals without prop drilling |
 | `hooks/useLocalNotifications.ts` | Weekly nudge scheduling |
+| `hooks/useLiveUpdate.ts` | WiFi sync — swaps in a bundle pulled from the laptop |
+| `lib/sync.ts` | Finds that laptop on the LAN without anyone typing an IP |
 
 ### Tabs
 
@@ -115,5 +121,6 @@ just build      # tsc && vite build
 just apk        # build the debug APK — no device needed
 just android    # build, sync, install on a connected device
 just ios        # build, sync, open Xcode
+just sync       # build, then serve the app to the phone over WiFi
 just devices    # list connected Android devices
 ```
