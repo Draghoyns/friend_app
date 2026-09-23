@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import {
-  Bell, BellOff, Check, Download, Eye, EyeOff, Gauge, Moon, Plus, Sun, Trash2, Upload, X,
+  Bell, BellOff, Check, Download, Eye, EyeOff, Gauge, Moon, Plus, RefreshCw, Sun, Trash2, Upload, X,
 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { humanDuration } from '@/lib/dates'
 import { useNotificationPermission, cancelWeeklyNudge, scheduleWeeklyNudge } from '@/hooks/useLocalNotifications'
+import { useLiveUpdate } from '@/hooks/useLiveUpdate'
 
 import { PALETTE } from '@/lib/scoring'
 
@@ -14,6 +15,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export default function Sidebar() {
   const s = useStore()
   const { granted, loading, request, isNative } = useNotificationPermission()
+  const { status: syncStatus, message: syncMessage, sync } = useLiveUpdate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [editingTag, setEditingTag]   = useState<string | null>(null)
   const [newTagName, setNewTagName]   = useState('')
@@ -322,6 +324,30 @@ export default function Sidebar() {
           </div>
           {message && <p className="text-[11px] text-slate-400 mt-2">{message}</p>}
         </section>
+
+        {/* ── Update over WiFi ─────────────────────────────────────────── */}
+        {isNative && (
+          <section>
+            <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">Update over WiFi</h3>
+            <button
+              onClick={sync}
+              disabled={syncStatus === 'working'}
+              className="btn-ghost w-full justify-center disabled:opacity-60"
+            >
+              <RefreshCw size={15} className={syncStatus === 'working' ? 'animate-spin' : ''} />
+              {syncStatus === 'working' ? 'Syncing…' : 'Sync now'}
+            </button>
+            {syncMessage && (
+              <p className={`text-[11px] mt-2 ${syncStatus === 'error' ? 'text-rose-400' : 'text-slate-400'}`}>
+                {syncMessage}
+              </p>
+            )}
+            <p className="text-[11px] text-slate-600 mt-2">
+              Pulls the latest build from the computer Orbit was built on. No address to type — it
+              looks for it on this WiFi.
+            </p>
+          </section>
+        )}
 
         <p className="text-[10px] text-slate-600 pt-2">
           Orbit keeps everything on this device. No account, no server.
